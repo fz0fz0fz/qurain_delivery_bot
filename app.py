@@ -1,17 +1,13 @@
 from flask import Flask, request
 import requests
-import json
 
 app = Flask(__name__)
 
-# قائمة الردود المحفّزة
+# 🔁 الكلمات التي تستدعي القائمة الرئيسية
 TRIGGERS = ["0", ".", "٠", "صفر", "خدمات"]
 
-# القائمة الرئيسية
-MAIN_MENU = """
-*الرد التلقائي*
-
-0, ., ٠, صفر, خدمات
+# 🧾 القائمة الرئيسية
+MAIN_MENU = """*📋 قائمة خدمات القرين:*
 
 1️⃣. حكومي
 2️⃣. صيدلية 💊
@@ -22,7 +18,7 @@ MAIN_MENU = """
 7️⃣. أسر منتجة 🥧
 8️⃣. مطاعم 🍔
 9️⃣. قرطاسية 📗
-🔟. محلات 🏪
+1️⃣0️⃣. محلات 🏪
 1️⃣1️⃣. شالية 🏖
 1️⃣2️⃣. وايت 🚛
 1️⃣3️⃣. شيول 🚜
@@ -33,37 +29,34 @@ MAIN_MENU = """
 1️⃣8️⃣. ذبائح وملاحم 🥩
 1️⃣9️⃣. نقل مدرسي ومشاوير 🚍
 2️⃣0️⃣. طلباتك
+
+اكتب رقم الخدمة أو "0" لعرض القائمة.
 """
 
-# قائمة الصيدليات
-PHARMACY_MENU = """
-*[2]* *قائمة الصيدليات*:
+# 🩺 قائمة الصيدليات كمثال
+PHARMACY_MENU = """*[2] قائمة الصيدليات:*
+
 1- صيدلية ركن أطلس (القرين)
 __________________________
 2- صيدلية دواء البدر (الدليمية)
 __________________________
 3- صيدلية ساير (الدليمية)
 
-*99 - إطلب*: ستجد طلباتك كاملة في رقم 20 من القائمة الرئيسية.
+*99 - إطلب*: ستجد طلباتك في رقم 20 من القائمة الرئيسية.
 """
 
-@app.route("/", methods=["GET"])
+@app.route('/')
 def home():
     return "Qurain Delivery Bot is running ✅"
 
-@app.route("/webhook", methods=["POST"])
+@app.route('/webhook', methods=['POST'])
 def webhook():
-    full_data = request.form.to_dict()
+    full_data = request.get_json(force=True)
     print("📥 البيانات المستلمة:", full_data)
 
-    inner = full_data.get("data")
-    if inner:
-        inner_data = json.loads(inner) if isinstance(inner, str) else inner
-        sender = inner_data.get("from")
-        message = inner_data.get("body")
-    else:
-        sender = None
-        message = None
+    inner_data = full_data.get("data", {})
+    sender = inner_data.get("from")
+    message = inner_data.get("body")
 
     print("👤 المرسل:", sender)
     print("💬 الرسالة:", message)
@@ -71,7 +64,7 @@ def webhook():
     if not sender:
         return "No sender", 400
 
-    # الردود بناءً على الرسالة
+    # الردود التلقائية حسب الرسالة
     if message in TRIGGERS:
         send_whatsapp(sender, MAIN_MENU)
     elif message == "2":
@@ -91,4 +84,4 @@ def send_whatsapp(to, message):
         "body": message
     }
     response = requests.post(url, data=payload)
-    print("تم الإرسال ✅" if response.ok else "❌", response.text)
+    print("📤 تم الإرسال إلى:", to, "✅" if response.ok else "❌", response.text)
