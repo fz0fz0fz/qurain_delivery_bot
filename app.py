@@ -1,13 +1,54 @@
 from flask import Flask, request
 import requests
+import json
+import os
 
 app = Flask(__name__)
 
-# 🔁 الكلمات التي تستدعي القائمة الرئيسية
-TRIGGERS = ["0", ".", "٠", "صفر", "خدمات"]
+ULTRA_TOKEN = "9dxefhg0k4l3b7ak"
+INSTANCE_ID = "instance130542"
+API_URL = f"https://api.ultramsg.com/{INSTANCE_ID}/messages/chat"
 
-# 🧾 القائمة الرئيسية
-MAIN_MENU = """*📋 قائمة خدمات القرين:*
+orders_file = "orders_log.json"
+
+# تهيئة ملف الطلبات
+if not os.path.exists(orders_file):
+    with open(orders_file, "w") as f:
+        json.dump({}, f)
+
+@app.route('/')
+def home():
+    return "Qurain Delivery Bot ✅"
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    data = request.form.to_dict()
+    sender = data.get('from')
+    message = data.get('body', '').strip()
+
+    print("📥 البيانات المستلمة:", data)
+    print("👤 المرسل:", sender)
+    print("💬 الرسالة:", message)
+
+    if not sender or not message:
+        return "Missing data", 400
+
+    if message in ['0', '.', '٠', 'صفر', 'خدمات']:
+        send_main_menu(sender)
+
+    elif message == "2":
+        send_pharmacy_menu(sender)
+
+    elif message == "99":
+        handle_order_request(sender)
+
+    else:
+        save_order(sender, message)
+
+    return "OK", 200
+
+def send_main_menu(to):
+    menu = """📋 *دليل خدمات القرين:*
 
 1️⃣. حكومي
 2️⃣. صيدلية 💊
@@ -30,58 +71,43 @@ MAIN_MENU = """*📋 قائمة خدمات القرين:*
 1️⃣9️⃣. نقل مدرسي ومشاوير 🚍
 2️⃣0️⃣. طلباتك
 
-اكتب رقم الخدمة أو "0" لعرض القائمة.
-"""
+*لرؤية خدمات الصيدليات أرسل:* 2
+*لطلب فوري أرسل:* 99"""
+    send_whatsapp(to, menu)
 
-# 🩺 قائمة الصيدليات كمثال
-PHARMACY_MENU = """*[2] قائمة الصيدليات:*
-
+def send_pharmacy_menu(to):
+    msg = """*[2]* *قائمة الصيدليات*:
 1- صيدلية ركن أطلس (القرين)
-__________________________
 2- صيدلية دواء البدر (الدليمية)
-__________________________
 3- صيدلية ساير (الدليمية)
 
-*99 - إطلب*: ستجد طلباتك في رقم 20 من القائمة الرئيسية.
-"""
+*99 - إطلب* : ستجد طلباتك كاملة في رقم 20 من القائمة الرئيسية."""
+    send_whatsapp(to, msg)
 
-@app.route('/')
-def home():
-    return "Qurain Delivery Bot is running ✅"
-
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    full_data = request.get_json(force=True)
-    print("📥 البيانات المستلمة:", full_data)
-
-    inner_data = full_data.get("data", {})
-    sender = inner_data.get("from")
-    message = inner_data.get("body")
-
-    print("👤 المرسل:", sender)
-    print("💬 الرسالة:", message)
-
-    if not sender:
-        return "No sender", 400
-
-    # الردود التلقائية حسب الرسالة
-    if message in TRIGGERS:
-        send_whatsapp(sender, MAIN_MENU)
-    elif message == "2":
-        send_whatsapp(sender, PHARMACY_MENU)
-    elif message == "99":
-        send_whatsapp(sender, "📥 أرسل طلبك الآن، وسنقوم بتجهيزه لك بإذن الله.")
+def handle_order_request(sender):
+    orders = load_orders()
+    user_order = orders.get(sender)
+    if user_order:
+        reply = "🧺 أرسل طلبك الآن، وسنقوم بتجهيزه لك بإذن الله."
     else:
-        send_whatsapp(sender, f"📩 تم استلام رسالتك: {message}")
+        reply = "❌ لا يوجد طلب مسجل لك حاليًا. الرجاء إرسال طلبك أولاً."
+    send_whatsapp(sender, reply)
 
-    return "OK", 200
+def save_order(sender, message):
+    orders = load_orders()
+    orders[sender] = message
+    with open(orders_file, "w") as f:
+        json.dump(orders, f)
+
+def load_orders():
+    with open(orders_file, "r") as f:
+        return json.load(f)
 
 def send_whatsapp(to, message):
-    url = "https://api.ultramsg.com/instance130542/messages/chat"
     payload = {
-        "token": "9dxefhg0k4l3b7ak",
+        "token": ULTRA_TOKEN,
         "to": to,
         "body": message
     }
-    response = requests.post(url, data=payload)
-    print("📤 تم الإرسال إلى:", to, "✅" if response.ok else "❌", response.text)
+    response = requests.post(API_URL, data=payload)
+    print("تم الإرسال ✅", response.text)
