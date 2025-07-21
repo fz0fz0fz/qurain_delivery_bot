@@ -9,7 +9,7 @@ def home():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    data = request.json
+    data = request.form.to_dict()  # ✅ بدّلنا json إلى form
     sender = data.get('from')
     message = data.get('body')
     if sender and message:
