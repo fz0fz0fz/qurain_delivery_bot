@@ -10,7 +10,7 @@ user_states = {}  # مثل {"9665xxx": "awaiting_pharmacy_order"}
 user_orders = {}  # مثل {"9665xxx": [{"service": "الصيدلية", "order": "طلب معين"}]}
 
 
-@app.route("/", methods=["POST"])
+@app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
     print("📨 البيانات المستلمة من UltraMsg:")
