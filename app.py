@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request
 from services.unified_service import handle_service
-from utils import send_message
+from utils import send_message, generate_order_id
 from dispatcher import dispatch_message
 
 app = Flask(__name__)
@@ -64,8 +64,12 @@ def webhook():
     for service_id, service_name, stores in unified_services:
         current_state = user_states.get(user_id)
 
-        # السماح بالتفاعل فقط في السياق المناسب
-        if message == service_id or current_state == f"awaiting_order_{service_name}" or (message == "99" and current_state is None):
+        # التفاعل فقط مع الخدمة المناسبة أو اللي المستخدم بدأ فيها
+        if (
+            message == service_id or
+            current_state == f"awaiting_order_{service_name}" or
+            (message == "99" and current_state == f"awaiting_order_{service_name}")
+        ):
             response = handle_service(user_id, message, user_states, user_orders, service_id, service_name, stores)
             if response:
                 send_message(user_id, response)
@@ -90,9 +94,10 @@ def webhook():
         if not orders:
             send_message(user_id, "❌ لا يوجد أي طلبات لإرسالها.")
         else:
+            order_id = generate_order_id()
             combined = "\n".join([f"- ({o['service']}) {o['order']}" for o in orders])
-            send_message("رقم_المندوب@c.us", f"📦 طلب جديد من {user_id}:\n{combined}")
-            send_message(user_id, "📤 تم إرسال طلبك للمندوب، سيتم التواصل معك قريباً.")
+            send_message("رقم_المندوب@c.us", f"📦 *طلب جديد* رقم #{order_id} من {user_id}:\n{combined}")
+            send_message(user_id, f"📤 تم إرسال طلبك بنجاح ✅\n*رقم الطلب: {order_id}*\nسيتم التواصل معك قريباً.")
             user_orders[user_id] = []  # إفراغ الطلبات بعد الإرسال
         return "OK", 200
 
