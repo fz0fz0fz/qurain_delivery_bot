@@ -1,28 +1,31 @@
-from state import user_states, user_orders
+from utils import send_message
 
 pharmacies = [
     "صيدلية النهدي",
     "صيدلية الدواء",
     "صيدلية المدينة",
-    "صيدلية فارمسي ون"
+    "صيدلية فارمسـي ون"
 ]
 
-def handle_pharmacy(sender, msg, state_map):
-    if msg == "2":
-        return (
-            "*💊 صيدليات القرين:*\n\n"
-            + "\n".join(f"{i+1}. {pharmacy}" for i, pharmacy in enumerate(pharmacies))
-            + "\n\n99 - اطلب الآن"
-        )
+def handle_pharmacy(user_id, message, user_states, user_orders):
+    if user_states.get(user_id) == "awaiting_pharmacy_order":
+        # المستخدم أرسل الطلب بعد 99
+        user_orders.setdefault(user_id, []).append({
+            "service": "الصيدلية",
+            "order": message
+        })
+        user_states[user_id] = None
+        return "📌 تم حفظ طلبك في قسم (طلباتك)."
 
-    elif msg == "99":
-        state_map[sender] = "awaiting_pharmacy_order"
-        return "✍️ اكتب طلبك الخاص بالصيدلية الآن..."
+    if message in ["2", "02", "٢"]:
+        reply = "💊 *صيدليات القرين:*\n"
+        for i, name in enumerate(pharmacies, 1):
+            reply += f"{i}. {name}\n"
+        reply += "\n*99 - اطلب الآن*"
+        return reply
 
-    else:
-        return "📌 يرجى اختيار صيدلية من القائمة أو إرسال 99 لطلب خاص."
+    if message == "99":
+        user_states[user_id] = "awaiting_pharmacy_order"
+        return "📝 أرسل الآن طلبك الخاص بالصيدلية، وسنحفظه لك في قسم (طلباتك) رقم 20."
 
-def save_pharmacy_order(sender, order):
-    if sender not in user_orders:
-        user_orders[sender] = []
-    user_orders[sender].append(f"[صيدلية] {order}")
+    return None
