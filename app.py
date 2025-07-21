@@ -7,8 +7,8 @@ from dispatcher import dispatch_message
 app = Flask(__name__)
 
 # الحالات المؤقتة للمستخدمين
-user_states = {}  # مثل {"9665xxx": "awaiting_pharmacy_order"}
-user_orders = {}  # مثل {"9665xxx": [{"service": "الصيدلية", "order": "طلب معين"}]}
+user_states = {}  # مثل {"9665xxx": "awaiting_order_الصيدلية"}
+user_orders = {}  # مثل {"9665xxx": [{"service": "الصيدلية", "order": "طلب"}]}
 
 
 @app.route("/webhook", methods=["POST"])
@@ -17,7 +17,6 @@ def webhook():
     print("📨 البيانات المستلمة من UltraMsg:")
     print(data)
 
-    # ✅ تعديل مكان استخراج البيانات
     msg_data = data.get("data", {})
     message = msg_data.get("body", "").strip()
     user_id = msg_data.get("from", "").strip()
@@ -63,10 +62,14 @@ def webhook():
     ]
 
     for service_id, service_name, stores in unified_services:
-        response = handle_service(user_id, message, user_states, user_orders, service_id, service_name, stores)
-        if response:
-            send_message(user_id, response)
-            return "OK", 200
+        current_state = user_states.get(user_id)
+
+        # السماح بالتفاعل فقط في السياق المناسب
+        if message == service_id or current_state == f"awaiting_order_{service_name}" or (message == "99" and current_state is None):
+            response = handle_service(user_id, message, user_states, user_orders, service_id, service_name, stores)
+            if response:
+                send_message(user_id, response)
+                return "OK", 200
 
     # عرض الطلبات المجمعة
     if message in ["20", "طلباتك"]:
@@ -81,6 +84,7 @@ def webhook():
             send_message(user_id, summary)
         return "OK", 200
 
+    # إنهاء الطلبات وإرسالها للمندوب
     if message.strip() == "تم":
         orders = user_orders.get(user_id, [])
         if not orders:
