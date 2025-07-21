@@ -1,12 +1,11 @@
 from flask import Flask, request
+from services import pharmacy
 import requests
 
 app = Flask(__name__)
 
-# قائمة الكلمات التي تفتح القائمة الرئيسية
 TRIGGERS = ["0", "٠", ".", "صفر", "خدمات"]
 
-# القائمة الرئيسية
 MAIN_MENU = """📍 *دليل خدمات القرين* 📍
 
 1️⃣. حكومي
@@ -33,32 +32,29 @@ MAIN_MENU = """📍 *دليل خدمات القرين* 📍
 أرسل رقم الخدمة للاطلاع على التفاصيل 👇
 """
 
-@app.route('/', methods=['GET'])
+@app.route("/", methods=["GET"])
 def home():
-    return "Qurain Delivery Bot is running ✅"
+    return "Qurain Bot ✅"
 
-@app.route('/webhook', methods=['POST'])
+@app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.form.to_dict()
-    full_data = request.get_json(force=True)
-    print("📥 البيانات المستلمة:", full_data)
+    sender = data.get("from")
+    message = data.get("body", "").strip()
 
-    sender = full_data.get("data", {}).get("from")
-    message = full_data.get("data", {}).get("body")
+    print("👤", sender)
+    print("💬", message)
 
-    print("👤 المرسل:", sender)
-    print("💬 الرسالة:", message)
-
-    if not sender or not message:
-        return "No sender/message", 400
-
-    # الرد التلقائي على "خدمات"
-    if message.strip() in TRIGGERS:
+    if message in TRIGGERS:
         send_whatsapp(sender, MAIN_MENU)
-        return "OK", 200
+    elif message == "2":
+        send_whatsapp(sender, pharmacy.get_menu())
+    elif message == "99":
+        send_whatsapp(sender, "📥 أرسل طلبك الآن، وسنقوم بتجهيزه لك بإذن الله.")
+        # لاحقاً نضيف تخزين حالة الطلب
+    else:
+        send_whatsapp(sender, f"📩 تم استلام رسالتك: {message}")
 
-    # الرد الافتراضي لو احتجنا لاحقًا
-    send_whatsapp(sender, f"📩 تم استلام رسالتك: {message}")
     return "OK", 200
 
 def send_whatsapp(to, message):
@@ -69,4 +65,4 @@ def send_whatsapp(to, message):
         "body": message
     }
     response = requests.post(url, data=payload)
-    print("تم الإرسال إلى:", to, "✅" if response.ok else "❌", response.text)
+    print("تم الإرسال ✅" if response.ok else "❌", response.text)
