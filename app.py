@@ -2,6 +2,7 @@ import os
 from flask import Flask, request
 from services.pharmacy import handle_pharmacy
 from utils import send_message
+from dispatcher import dispatch_message
 
 app = Flask(__name__)
 
