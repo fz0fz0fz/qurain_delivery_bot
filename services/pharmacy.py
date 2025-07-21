@@ -1,4 +1,4 @@
-from app import user_states, user_orders
+from state import user_states, user_orders
 
 pharmacies = [
     "صيدلية النهدي",
