@@ -26,7 +26,7 @@ services = {
     }
 }
 
-@app.route("/", methods=["POST"])
+@app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.get_json()
     if not data or "data" not in data:
