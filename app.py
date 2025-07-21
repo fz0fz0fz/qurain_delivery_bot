@@ -13,12 +13,14 @@ user_orders = {}  # مثل {"9665xxx": [{"service": "الصيدلية", "order":
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.json
+    data = request.get_json(force=True)
     print("📨 البيانات المستلمة من UltraMsg:")
     print(data)
 
-    message = data.get("body", "").strip()
-    user_id = data.get("from", "")
+    # ✅ تعديل مكان استخراج البيانات
+    msg_data = data.get("data", {})
+    message = msg_data.get("body", "").strip()
+    user_id = msg_data.get("from", "").strip()
 
     if not message or not user_id:
         print("❌ تم استلام بيانات غير صالحة:")
