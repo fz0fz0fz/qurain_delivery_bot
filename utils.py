@@ -1,7 +1,7 @@
+import os
+import requests
 import random
 import string
-import requests
-import os
 
 def generate_order_id():
     return "G" + ''.join(random.choices(string.digits, k=3))
