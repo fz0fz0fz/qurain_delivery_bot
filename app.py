@@ -9,11 +9,12 @@ def home():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    data = request.get_json()  # ✅ استخدم get_json
+    data = request.json
     print("📥 البيانات المستلمة:", data)
 
-    sender = data.get('from')
-    message = data.get('body')
+    msg_data = data.get("data", {})
+    sender = msg_data.get("from")
+    message = msg_data.get("body")
 
     print("👤 المرسل:", sender)
     print("💬 الرسالة:", message)
