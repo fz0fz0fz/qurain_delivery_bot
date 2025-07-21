@@ -9,9 +9,12 @@ def home():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    data = request.form.to_dict()  # ✅ بدّلنا json إلى form
+    data = request.form.to_dict()  # ✅ UltraMsg يرسل البيانات بصيغة form
+    print("📥 البيانات المستلمة:", data)
     sender = data.get('from')
     message = data.get('body')
+    print("👤 المرسل:", sender)
+    print("💬 الرسالة:", message)
     if sender and message:
         reply = f"📩 تم استلام رسالتك: {message}"
         send_whatsapp(sender, reply)
@@ -25,4 +28,4 @@ def send_whatsapp(to, message):
         "body": message
     }
     response = requests.post(url, data=payload)
-    print("تم الإرسال إلى:", to, "✅" if response.ok else "❌", response.text)
+    print("📤 تم الإرسال إلى:", to, "✅" if response.ok else "❌", response.text)
