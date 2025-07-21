@@ -1,31 +1,24 @@
-from utils import send_message
-
-pharmacies = [
-    "صيدلية النهدي",
-    "صيدلية الدواء",
-    "صيدلية المدينة",
-    "صيدلية فارمسـي ون"
-]
-
 def handle_pharmacy(user_id, message, user_states, user_orders):
-    if user_states.get(user_id) == "awaiting_pharmacy_order":
-        # المستخدم أرسل الطلب بعد 99
+    if message.strip() == "2":
+        return (
+            "*📦 صيدليات القرين:*\n"
+            "1. صيدلية الدواء\n"
+            "2. صيدلية النهدي\n"
+            "3. صيدلية زهرة\n"
+            "99. اطلب الآن"
+        )
+
+    elif message.strip() == "99":
+        user_states[user_id] = "awaiting_pharmacy_order"
+        return "✏️ أرسل الآن طلبك الخاص بالصيدلية مثل: بندول، فيتامين د"
+
+    elif user_states.get(user_id) == "awaiting_pharmacy_order":
+        # حفظ الطلب في قائمة الطلبات مع اسم الخدمة
         user_orders.setdefault(user_id, []).append({
             "service": "الصيدلية",
             "order": message
         })
         user_states[user_id] = None
-        return "📌 تم حفظ طلبك في قسم (طلباتك)."
-
-    if message in ["2", "02", "٢"]:
-        reply = "💊 *صيدليات القرين:*\n"
-        for i, name in enumerate(pharmacies, 1):
-            reply += f"{i}. {name}\n"
-        reply += "\n*99 - اطلب الآن*"
-        return reply
-
-    if message == "99":
-        user_states[user_id] = "awaiting_pharmacy_order"
-        return "📝 أرسل الآن طلبك الخاص بالصيدلية، وسنحفظه لك في قسم (طلباتك) رقم 20."
+        return "✅ تم حفظ طلبك ضمن طلبات الصيدلية، أرسل 0 للرجوع للقائمة أو 20 لمراجعة طلباتك."
 
     return None
