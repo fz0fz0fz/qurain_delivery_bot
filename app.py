@@ -1,15 +1,15 @@
 import os
 from flask import Flask, request
 from services.pharmacy import handle_pharmacy
+from services.grocery import handle_grocery
 from utils import send_message
 from dispatcher import dispatch_message
 
 app = Flask(__name__)
 
 # الحالات المؤقتة للمستخدمين
-user_states = {}  # {"9665xxx": "awaiting_pharmacy_order"}
-user_orders = {}  # {"9665xxx": [{"service": "الصيدلية", "order": "طلب معين"}]}
-
+user_states = {}
+user_orders = {}
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -17,9 +17,8 @@ def webhook():
     print("📨 البيانات المستلمة من UltraMsg:")
     print(data)
 
-    data = data.get("data", {})  # ✅ التصحيح المهم
-    message = data.get("body", "").strip()
-    user_id = data.get("from", "")
+    message = data.get("data", {}).get("body", "").strip()
+    user_id = data.get("data", {}).get("from", "")
 
     if not message or not user_id:
         print("❌ تم استلام بيانات غير صالحة:")
@@ -27,7 +26,7 @@ def webhook():
         print("user_id:", user_id)
         return "Invalid", 400
 
-    # الرد على الأوامر العامة (0 = القائمة الرئيسية)
+    # عرض القائمة الرئيسية
     if message in ["0", ".", "٠", "خدمات", "القائمة"]:
         main_menu = (
             "*🧾 خدمات القرين:*\n\n"
@@ -55,13 +54,19 @@ def webhook():
         send_message(user_id, main_menu)
         return "OK", 200
 
-    # تمرير الرسالة لخدمة الصيدلية
+    # الصيدلية
     response = handle_pharmacy(user_id, message, user_states, user_orders)
     if response:
         send_message(user_id, response)
         return "OK", 200
 
-    # عرض الطلبات من كافة الأقسام
+    # البقالة
+    response = handle_grocery(user_id, message, user_states, user_orders)
+    if response:
+        send_message(user_id, response)
+        return "OK", 200
+
+    # عرض الطلبات
     if message in ["20", "طلباتك"]:
         orders = user_orders.get(user_id, [])
         if not orders:
@@ -74,16 +79,37 @@ def webhook():
             send_message(user_id, summary)
         return "OK", 200
 
+    # إنهاء الطلب
     if message == "تم":
         orders = user_orders.get(user_id, [])
         if not orders:
             send_message(user_id, "❌ لا يوجد أي طلبات لإرسالها.")
         else:
-            combined = "\n".join([f"- ({o['service']}) {o['order']}" for o in orders])
-            # إرسال الطلب للمندوب أو المشرف (عدّل الرقم هنا):
-            send_message("رقم_المندوب@c.us", f"📦 طلب جديد من {user_id}:\n{combined}")
-            send_message(user_id, "📤 تم إرسال طلبك للمندوب، سيتم التواصل معك قريباً.")
-            user_orders[user_id] = []  # مسح الطلبات
+            from utils import generate_order_id
+            from vendors import vendors
+            from mandoubs import mandoubs
+
+            order_id = generate_order_id()
+
+            # إرسال نسخة للمندوب
+            full_summary = "\n".join([f"- ({o['service']}) {o['order']}" for o in orders])
+            for mandoub in mandoubs:
+                if mandoub["available"]:
+                    msg = f"📦 طلب جديد رقم {order_id} من {user_id}:\n{full_summary}"
+                    send_message(mandoub["id"], msg)
+                    break
+
+            # إرسال لكل محل فقط الجزء الخاص به
+            from services import pharmacy, grocery
+            for o in orders:
+                if o["service"] == "الصيدلية":
+                    pharmacy.send_order(vendors["pharmacy"]["number"], order_id, o["order"])
+                elif o["service"] == "البقالة":
+                    grocery.send_order(vendors["grocery"]["number"], order_id, o["order"])
+
+            send_message(user_id, f"📤 تم إرسال طلبك رقم {order_id} للمندوب والمحلات.")
+            user_orders[user_id] = []
+
         return "OK", 200
 
     # رد افتراضي
