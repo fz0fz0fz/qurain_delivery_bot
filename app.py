@@ -1,12 +1,17 @@
 from flask import Flask, request
-from services import pharmacy
 import requests
+import json
 
 app = Flask(__name__)
 
-TRIGGERS = ["0", "٠", ".", "صفر", "خدمات"]
+# قائمة الردود المحفّزة
+TRIGGERS = ["0", ".", "٠", "صفر", "خدمات"]
 
-MAIN_MENU = """📍 *دليل خدمات القرين* 📍
+# القائمة الرئيسية
+MAIN_MENU = """
+*الرد التلقائي*
+
+0, ., ٠, صفر, خدمات
 
 1️⃣. حكومي
 2️⃣. صيدلية 💊
@@ -28,30 +33,51 @@ MAIN_MENU = """📍 *دليل خدمات القرين* 📍
 1️⃣8️⃣. ذبائح وملاحم 🥩
 1️⃣9️⃣. نقل مدرسي ومشاوير 🚍
 2️⃣0️⃣. طلباتك
+"""
 
-أرسل رقم الخدمة للاطلاع على التفاصيل 👇
+# قائمة الصيدليات
+PHARMACY_MENU = """
+*[2]* *قائمة الصيدليات*:
+1- صيدلية ركن أطلس (القرين)
+__________________________
+2- صيدلية دواء البدر (الدليمية)
+__________________________
+3- صيدلية ساير (الدليمية)
+
+*99 - إطلب*: ستجد طلباتك كاملة في رقم 20 من القائمة الرئيسية.
 """
 
 @app.route("/", methods=["GET"])
 def home():
-    return "Qurain Bot ✅"
+    return "Qurain Delivery Bot is running ✅"
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.form.to_dict()
-    sender = data.get("from")
-    message = data.get("body", "").strip()
+    full_data = request.form.to_dict()
+    print("📥 البيانات المستلمة:", full_data)
 
-    print("👤", sender)
-    print("💬", message)
+    inner = full_data.get("data")
+    if inner:
+        inner_data = json.loads(inner) if isinstance(inner, str) else inner
+        sender = inner_data.get("from")
+        message = inner_data.get("body")
+    else:
+        sender = None
+        message = None
 
+    print("👤 المرسل:", sender)
+    print("💬 الرسالة:", message)
+
+    if not sender:
+        return "No sender", 400
+
+    # الردود بناءً على الرسالة
     if message in TRIGGERS:
         send_whatsapp(sender, MAIN_MENU)
     elif message == "2":
-        send_whatsapp(sender, pharmacy.get_menu())
+        send_whatsapp(sender, PHARMACY_MENU)
     elif message == "99":
         send_whatsapp(sender, "📥 أرسل طلبك الآن، وسنقوم بتجهيزه لك بإذن الله.")
-        # لاحقاً نضيف تخزين حالة الطلب
     else:
         send_whatsapp(sender, f"📩 تم استلام رسالتك: {message}")
 
