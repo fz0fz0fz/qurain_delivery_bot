@@ -1,60 +1,28 @@
 import os
-import requests
-from flask import Flask, request, jsonify
-from services.pharmacy import handle_pharmacy, save_pharmacy_order
-from services.grocery import handle_grocery
-from services.vegetable import handle_vegetable
+from flask import Flask, request
+from services.pharmacy import handle_pharmacy
+from utils import send_message
 
 app = Flask(__name__)
 
-INSTANCE_ID = "instance130542"
-TOKEN = "9dxefhg0k4l3b7ak"
-API_URL = f"https://api.ultramsg.com/{INSTANCE_ID}/messages/chat"
+# الحالات المؤقتة للمستخدمين
+user_states = {}  # مثل {"9665xxx": "awaiting_pharmacy_order"}
+user_orders = {}  # مثل {"9665xxx": [{"service": "الصيدلية", "order": "طلب معين"}]}
 
-user_states = {}
-user_orders = {}
 
-def send_whatsapp(to, message):
-    payload = {
-        "token": TOKEN,
-        "to": to,
-        "body": message
-    }
-    requests.post(API_URL, json=payload)
-
-@app.route("/")
-def home():
-    return "WhatsApp Qurain Bot is running."
-
-@app.route("/webhook", methods=["POST"])
+@app.route("/", methods=["POST"])
 def webhook():
-    try:
-        data = request.get_json(force=True)
-        sender = data.get("data", {}).get("from")
-        message = data.get("data", {}).get("body")
+    data = request.json
+    message = data.get("body", "").strip()
+    user_id = data.get("from", "")
 
-        if sender and message:
-            reply = handle_message(sender, message.strip())
-            send_whatsapp(sender, reply)
+    if not message or not user_id:
+        return "Invalid", 400
 
-        return "OK", 200
-    except Exception as e:
-        print("❌ Error:", str(e))
-        return "Error", 400
-
-def handle_message(sender, message):
-    msg = message.strip().lower()
-
-    # الحالة: المستخدم في انتظار إدخال طلب
-    if user_states.get(sender) == "awaiting_pharmacy_order":
-        user_states.pop(sender)
-        save_pharmacy_order(sender, msg)
-        return "✅ تم استلام طلبك وسيتم حفظه في قائمة الطلبات (رقم 20)."
-
-    # إرسال قائمة الخدمات الرئيسية
-    if msg in ["0", ".", "٠", "صفر", "خدمات"]:
-        return (
-            "*📋 قائمة الخدمات:*\n\n"
+    # الرد على الأوامر العامة (0 = القائمة الرئيسية)
+    if message in ["0", ".", "٠", "خدمات", "القائمة"]:
+        main_menu = (
+            "*🧾 خدمات القرين:*\n\n"
             "1️⃣. حكومي\n"
             "2️⃣. صيدلية 💊\n"
             "3️⃣. بقالة 🥤\n"
@@ -65,38 +33,51 @@ def handle_message(sender, message):
             "8️⃣. مطاعم 🍔\n"
             "9️⃣. قرطاسية 📗\n"
             "🔟. محلات 🏪\n"
-            "1️⃣1️⃣. شالية 🏖\n"
-            "1️⃣2️⃣. وايت 🚛\n"
-            "1️⃣3️⃣. شيول 🚜\n"
-            "1️⃣4️⃣. دفان 🏗\n"
-            "1️⃣5️⃣. مواد بناء وعوازل 🧱\n"
-            "1️⃣6️⃣. عمال 👷\n"
-            "1️⃣7️⃣. محلات مهنية 🔨\n"
-            "1️⃣8️⃣. ذبائح وملاحم 🥩\n"
-            "1️⃣9️⃣. نقل مدرسي ومشاوير 🚍\n"
-            "2️⃣0️⃣. طلباتك\n"
+            "11. شالية 🏖\n"
+            "12. وايت 🚛\n"
+            "13. شيول 🚜\n"
+            "14. دفان 🏗\n"
+            "15. مواد بناء وعوازل 🧱\n"
+            "16. عمال 👷\n"
+            "17. محلات مهنية 🔨\n"
+            "18. ذبائح وملاحم 🥩\n"
+            "19. نقل مدرسي ومشاوير 🚍\n"
+            "20. طلباتك"
         )
+        send_message(user_id, main_menu)
+        return "OK", 200
 
-    # صيدلية
-    if msg.startswith("2"):
-        return handle_pharmacy(sender, msg, user_states)
+    # تمرير الرسالة لخدمة الصيدلية
+    response = handle_pharmacy(user_id, message, user_states, user_orders)
+    if response:
+        send_message(user_id, response)
+        return "OK", 200
 
-    # بقالة
-    if msg.startswith("3"):
-        return handle_grocery(msg)
-
-    # خضار
-    if msg.startswith("4"):
-        return handle_vegetable(msg)
-
-    # عرض الطلبات
-    if msg == "20":
-        orders = user_orders.get(sender, [])
+    # عرض الطلبات من كافة الأقسام
+    if message in ["20", "طلباتك"]:
+        orders = user_orders.get(user_id, [])
         if not orders:
-            return "📭 لا توجد طلبات محفوظة حالياً."
-        return "*🧾 طلباتك السابقة:*\n\n" + "\n".join(f"• {o}" for o in orders)
+            send_message(user_id, "🗃 لا يوجد طلبات محفوظة حالياً.")
+        else:
+            summary = "🗂 *ملخص طلباتك:*\n"
+            for i, item in enumerate(orders, 1):
+                summary += f"{i}. ({item['service']}) {item['order']}\n"
+            summary += "\n✅ أرسل *تم* للإرسال النهائي."
+            send_message(user_id, summary)
+        return "OK", 200
 
-    return "📌 تم استلام طلبك. نعمل عليه حالياً..."
+    if message == "تم":
+        orders = user_orders.get(user_id, [])
+        if not orders:
+            send_message(user_id, "❌ لا يوجد أي طلبات لإرسالها.")
+        else:
+            combined = "\n".join([f"- ({o['service']}) {o['order']}" for o in orders])
+            # إرسال الطلب للمندوب أو المشرف (اكتب رقمك هنا):
+            send_message("رقم_المندوب@c.us", f"📦 طلب جديد من {user_id}:\n{combined}")
+            send_message(user_id, "📤 تم إرسال طلبك للمندوب، سيتم التواصل معك قريباً.")
+            user_orders[user_id] = []  # إفراغ الطلبات بعد الإرسال
+        return "OK", 200
 
-if __name__ == "__main__":
-    app.run(port=10000)
+    # رد افتراضي
+    send_message(user_id, "❓ لم أفهم رسالتك، أرسل (0) لعرض القائمة.")
+    return "OK", 200
