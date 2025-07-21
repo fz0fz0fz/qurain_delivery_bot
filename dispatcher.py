@@ -36,3 +36,33 @@ def process_order(customer_number, message):
             )
             send_whatsapp(mandoub["id"], msg)
             break
+
+def dispatch_message(message, user_id):
+    if not message or not user_id:
+        print("❌ تم استلام بيانات غير صالحة:")
+        print("message:", message)
+        print("user_id:", user_id)
+        return
+
+    print(f"📩 رسالة جديدة من {user_id}: {message}")
+
+    if message.strip() == "0":
+        reply = (
+            "✅ *أهلاً بك في دليل خدمات القرين*\n"
+            "1️⃣ صيدلية 💊\n"
+            "2️⃣ بقالة 🥤\n"
+            "3️⃣ خضار 🥬\n"
+            "99. اطلب الآن\n"
+            "20. طلباتك"
+        )
+        send_whatsapp(user_id, reply)
+
+    elif message.strip() == "99":
+        send_whatsapp(user_id, "✏️ أرسل طلبك الآن، مثال:\nبندول، عصير، طماطم")
+
+    elif message.strip().startswith("G"):
+        send_whatsapp(user_id, "📦 تم استلام رقم طلبك بنجاح. شكراً لك.")
+
+    else:
+        process_order(user_id, message)
+        send_whatsapp(user_id, "✅ تم استلام طلبك وسيتم التواصل معك قريباً.")
