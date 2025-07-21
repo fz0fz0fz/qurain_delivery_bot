@@ -10,13 +10,19 @@ user_states = {}  # مثل {"9665xxx": "awaiting_pharmacy_order"}
 user_orders = {}  # مثل {"9665xxx": [{"service": "الصيدلية", "order": "طلب معين"}]}
 
 
-@app.route("/webhook", methods=["POST"])  # ✅ تم تعديل المسار هنا
+@app.route("/", methods=["POST"])
 def webhook():
     data = request.json
+    print("📨 البيانات المستلمة من UltraMsg:")
+    print(data)  # طباعة البيانات في اللوق
+
     message = data.get("body", "").strip()
     user_id = data.get("from", "")
 
     if not message or not user_id:
+        print("❌ تم استلام بيانات غير صالحة:")
+        print("message:", message)
+        print("user_id:", user_id)
         return "Invalid", 400
 
     # الرد على الأوامر العامة (0 = القائمة الرئيسية)
@@ -72,6 +78,7 @@ def webhook():
             send_message(user_id, "❌ لا يوجد أي طلبات لإرسالها.")
         else:
             combined = "\n".join([f"- ({o['service']}) {o['order']}" for o in orders])
+            # إرسال الطلب للمندوب أو المشرف (اكتب رقمك هنا):
             send_message("رقم_المندوب@c.us", f"📦 طلب جديد من {user_id}:\n{combined}")
             send_message(user_id, "📤 تم إرسال طلبك للمندوب، سيتم التواصل معك قريباً.")
             user_orders[user_id] = []  # إفراغ الطلبات بعد الإرسال
