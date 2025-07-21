@@ -1,7 +1,7 @@
 import os
 import requests
 from flask import Flask, request, jsonify
-from services.pharmacy import handle_pharmacy
+from services.pharmacy import handle_pharmacy, save_pharmacy_order
 from services.grocery import handle_grocery
 from services.vegetable import handle_vegetable
 
@@ -10,6 +10,9 @@ app = Flask(__name__)
 INSTANCE_ID = "instance130542"
 TOKEN = "9dxefhg0k4l3b7ak"
 API_URL = f"https://api.ultramsg.com/{INSTANCE_ID}/messages/chat"
+
+user_states = {}
+user_orders = {}
 
 def send_whatsapp(to, message):
     payload = {
@@ -25,31 +28,30 @@ def home():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    print("📥 نوع البيانات:", request.content_type)
-
     try:
         data = request.get_json(force=True)
-        print("📥 البيانات المستلمة:", data)
-
         sender = data.get("data", {}).get("from")
         message = data.get("data", {}).get("body")
 
-        print("👤 المرسل:", sender)
-        print("💬 الرسالة:", message)
-
         if sender and message:
-            reply = handle_message(message)
+            reply = handle_message(sender, message.strip())
             send_whatsapp(sender, reply)
 
         return "OK", 200
-
     except Exception as e:
-        print("❌ خطأ:", str(e))
+        print("❌ Error:", str(e))
         return "Error", 400
 
-def handle_message(message):
+def handle_message(sender, message):
     msg = message.strip().lower()
 
+    # الحالة: المستخدم في انتظار إدخال طلب
+    if user_states.get(sender) == "awaiting_pharmacy_order":
+        user_states.pop(sender)
+        save_pharmacy_order(sender, msg)
+        return "✅ تم استلام طلبك وسيتم حفظه في قائمة الطلبات (رقم 20)."
+
+    # إرسال قائمة الخدمات الرئيسية
     if msg in ["0", ".", "٠", "صفر", "خدمات"]:
         return (
             "*📋 قائمة الخدمات:*\n\n"
@@ -75,14 +77,24 @@ def handle_message(message):
             "2️⃣0️⃣. طلباتك\n"
         )
 
+    # صيدلية
     if msg.startswith("2"):
-        return handle_pharmacy(message)
+        return handle_pharmacy(sender, msg, user_states)
 
+    # بقالة
     if msg.startswith("3"):
-        return handle_grocery(message)
+        return handle_grocery(msg)
 
+    # خضار
     if msg.startswith("4"):
-        return handle_vegetable(message)
+        return handle_vegetable(msg)
+
+    # عرض الطلبات
+    if msg == "20":
+        orders = user_orders.get(sender, [])
+        if not orders:
+            return "📭 لا توجد طلبات محفوظة حالياً."
+        return "*🧾 طلباتك السابقة:*\n\n" + "\n".join(f"• {o}" for o in orders)
 
     return "📌 تم استلام طلبك. نعمل عليه حالياً..."
 
