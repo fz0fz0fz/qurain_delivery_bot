@@ -10,7 +10,7 @@ user_states = {}  # مثل {"9665xxx": "awaiting_pharmacy_order"}
 user_orders = {}  # مثل {"9665xxx": [{"service": "الصيدلية", "order": "طلب معين"}]}
 
 
-@app.route("/", methods=["POST"])
+@app.route("/webhook", methods=["POST"])  # ✅ تم تعديل المسار هنا
 def webhook():
     data = request.json
     message = data.get("body", "").strip()
@@ -72,7 +72,6 @@ def webhook():
             send_message(user_id, "❌ لا يوجد أي طلبات لإرسالها.")
         else:
             combined = "\n".join([f"- ({o['service']}) {o['order']}" for o in orders])
-            # إرسال الطلب للمندوب أو المشرف (اكتب رقمك هنا):
             send_message("رقم_المندوب@c.us", f"📦 طلب جديد من {user_id}:\n{combined}")
             send_message(user_id, "📤 تم إرسال طلبك للمندوب، سيتم التواصل معك قريباً.")
             user_orders[user_id] = []  # إفراغ الطلبات بعد الإرسال
