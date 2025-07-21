@@ -1,46 +1,43 @@
 import os
-from flask import Flask, request
-from services.unified_service import handle_service
-from utils import send_message, generate_order_id
-from dispatcher import dispatch_message
+import logging
+from flask import Flask, request, jsonify
+from send_utils import send_message
+from unified_service import handle_service
+import json
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# الحالات المؤقتة للمستخدمين
-user_states = {}  # مثل {"9665xxx": "awaiting_order_الصيدلية"}
-user_orders = {}  # مثل {"9665xxx": [{"service": "الصيدلية", "order": "طلب"}]}
-
+user_states = {}
+user_orders = {}
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.get_json(force=True)
-    print("📨 البيانات المستلمة من UltraMsg:")
-    print(data)
+    data = request.json
+    logging.info("📨 البيانات المستلمة من UltraMsg:\n%s", data)
 
-    msg_data = data.get("data", {})
-    message = msg_data.get("body", "").strip()
-    user_id = msg_data.get("from", "").strip()
+    if not data or "data" not in data:
+        return jsonify({"success": False}), 400
 
-    if not message or not user_id:
-        print("❌ تم استلام بيانات غير صالحة:")
-        print("message:", message)
-        print("user_id:", user_id)
-        return "Invalid", 400
+    msg = data["data"]
+    phone = msg["from"]
+    message = msg["body"].strip()
+    user_id = phone
 
-    # القائمة الرئيسية
-    if message in ["0", ".", "٠", "خدمات", "القائمة"]:
+    # ✅ إذا أرسل المستخدم "0" أو "." أو "خدمات" يتم عرض القائمة الرئيسية
+    if message in ["0", ".", "٠", "صفر", "خدمات"]:
         main_menu = (
-            "*🧾 خدمات القرين:*\n\n"
-            "1️⃣. حكومي\n"
-            "2️⃣. صيدلية 💊\n"
-            "3️⃣. بقالة 🥤\n"
-            "4️⃣. خضار 🥬\n"
-            "5️⃣. رحلات ⛺️\n"
-            "6️⃣. حلا 🍮\n"
-            "7️⃣. أسر منتجة 🥧\n"
-            "8️⃣. مطاعم 🍔\n"
-            "9️⃣. قرطاسية 📗\n"
-            "🔟. محلات 🏪\n"
+            "*📋 خدمات القرين:*\n\n"
+            "1️⃣ حكومي\n"
+            "2️⃣ صيدلية 💊\n"
+            "3️⃣ بقالة 🥤\n"
+            "4️⃣ خضار 🥬\n"
+            "5️⃣ رحلات ⛺️\n"
+            "6️⃣ حلا 🍮\n"
+            "7️⃣ أسر منتجة 🥧\n"
+            "8️⃣ مطاعم 🍔\n"
+            "9️⃣ قرطاسية 📗\n"
+            "🔟 محلات 🏪\n"
             "11. شالية 🏖\n"
             "12. وايت 🚛\n"
             "13. شيول 🚜\n"
@@ -50,57 +47,54 @@ def webhook():
             "17. محلات مهنية 🔨\n"
             "18. ذبائح وملاحم 🥩\n"
             "19. نقل مدرسي ومشاوير 🚍\n"
-            "20. طلباتك"
+            "20. طلباتك 📦\n"
         )
-        send_message(user_id, main_menu)
-        return "OK", 200
+        return jsonify({"success": True}), send_message(phone, main_menu)
 
-    # خدمات موحدة مثل الصيدلية والبقالة
-    unified_services = [
-        ("2", "الصيدلية", ["صيدلية النهدي", "صيدلية الدواء"]),
-        ("3", "البقالة", ["بقالة السالم", "بقالة الراية", "بقالة التوفير"]),
-    ]
+    # ✅ تمرير رسالة 99 إلى الخدمة الحالية إذا كان المستخدم داخل خدمة
+    elif message == "99" and user_states.get(user_id, "").startswith("in_service:"):
+        service_state = user_states[user_id]
+        service_id = service_state.split(":")[1]
+        service_name = service_state.split(":")[2]
+        response = handle_service(
+            user_id, message, user_states, user_orders,
+            service_id, service_name, []
+        )
+        return jsonify({"success": True}), send_message(phone, response)
 
-    for service_id, service_name, stores in unified_services:
-        current_state = user_states.get(user_id)
+    # ✅ تمرير الرسائل إلى الخدمة الحالية إذا كان المستخدم داخل خدمة
+    elif user_states.get(user_id, "").startswith("in_service:"):
+        service_state = user_states[user_id]
+        service_id = service_state.split(":")[1]
+        service_name = service_state.split(":")[2]
+        response = handle_service(
+            user_id, message, user_states, user_orders,
+            service_id, service_name, []
+        )
+        return jsonify({"success": True}), send_message(phone, response)
 
-        # التفاعل فقط مع الخدمة المناسبة أو اللي المستخدم بدأ فيها
-        if (
-            message == service_id or
-            current_state == f"awaiting_order_{service_name}" or
-            (message == "99" and current_state == f"awaiting_order_{service_name}")
-        ):
-            response = handle_service(user_id, message, user_states, user_orders, service_id, service_name, stores)
-            if response:
-                send_message(user_id, response)
-                return "OK", 200
+    # ✅ إذا أرسل "20" عرض الطلبات الحالية
+    elif message == "20":
+        user_data = user_orders.get(user_id, {})
+        if not user_data:
+            return jsonify({"success": True}), send_message(phone, "🗂 لا توجد طلبات محفوظة حالياً.")
+        reply = "*📦 طلباتك الحالية:*\n\n"
+        for service, items in user_data.items():
+            reply += f"📌 *{service}:*\n"
+            for item in items:
+                reply += f" - {item}\n"
+            reply += "\n"
+        reply += '✅ إذا كنت جاهزاً للإرسال، أرسل كلمة *تم*.\n'
+        return jsonify({"success": True}), send_message(phone, reply)
 
-    # عرض الطلبات المجمعة
-    if message in ["20", "طلباتك"]:
-        orders = user_orders.get(user_id, [])
-        if not orders:
-            send_message(user_id, "🗃 لا يوجد طلبات محفوظة حالياً.")
-        else:
-            summary = "🗂 *ملخص طلباتك:*\n"
-            for i, item in enumerate(orders, 1):
-                summary += f"{i}. ({item['service']}) {item['order']}\n"
-            summary += "\n✅ أرسل *تم* للإرسال النهائي."
-            send_message(user_id, summary)
-        return "OK", 200
+    # ✅ إرسال الطلب النهائي
+    elif message == "تم":
+        from order_router import process_order
+        return process_order(user_id, phone, user_orders)
 
-    # إنهاء الطلبات وإرسالها للمندوب
-    if message.strip() == "تم":
-        orders = user_orders.get(user_id, [])
-        if not orders:
-            send_message(user_id, "❌ لا يوجد أي طلبات لإرسالها.")
-        else:
-            order_id = generate_order_id()
-            combined = "\n".join([f"- ({o['service']}) {o['order']}" for o in orders])
-            send_message("رقم_المندوب@c.us", f"📦 *طلب جديد* رقم #{order_id} من {user_id}:\n{combined}")
-            send_message(user_id, f"📤 تم إرسال طلبك بنجاح ✅\n*رقم الطلب: {order_id}*\nسيتم التواصل معك قريباً.")
-            user_orders[user_id] = []  # إفراغ الطلبات بعد الإرسال
-        return "OK", 200
+    # ⚠️ رد افتراضي
+    else:
+        return jsonify({"success": True}), send_message(phone, "❓ لم أفهم رسالتك، أرسل (0) لعرض القائمة.")
 
-    # رد افتراضي
-    send_message(user_id, "❓ لم أفهم رسالتك، أرسل (0) لعرض القائمة.")
-    return "OK", 200
+if __name__ == "__main__":
+    app.run()
