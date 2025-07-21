@@ -1,4 +1,8 @@
-import os from flask import Flask, request from services.pharmacy import handle_pharmacy from services.unified_service import handle_service from utils import send_message from dispatcher import dispatch_message
+import os from flask
+import Flask, request from services.pharmacy 
+import handle_pharmacy from services.unified_service 
+import handle_service from utils import send_message from dispatcher 
+import dispatch_message
 
 app = Flask(name)
 
