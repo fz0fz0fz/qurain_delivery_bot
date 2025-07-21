@@ -7,16 +7,17 @@ from dispatcher import dispatch_message
 app = Flask(__name__)
 
 # الحالات المؤقتة للمستخدمين
-user_states = {}  # مثل {"9665xxx": "awaiting_pharmacy_order"}
-user_orders = {}  # مثل {"9665xxx": [{"service": "الصيدلية", "order": "طلب معين"}]}
+user_states = {}  # {"9665xxx": "awaiting_pharmacy_order"}
+user_orders = {}  # {"9665xxx": [{"service": "الصيدلية", "order": "طلب معين"}]}
 
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
     print("📨 البيانات المستلمة من UltraMsg:")
-    print(data)  # طباعة البيانات في اللوق
+    print(data)
 
+    data = data.get("data", {})  # ✅ التصحيح المهم
     message = data.get("body", "").strip()
     user_id = data.get("from", "")
 
@@ -79,10 +80,10 @@ def webhook():
             send_message(user_id, "❌ لا يوجد أي طلبات لإرسالها.")
         else:
             combined = "\n".join([f"- ({o['service']}) {o['order']}" for o in orders])
-            # إرسال الطلب للمندوب أو المشرف (اكتب رقمك هنا):
+            # إرسال الطلب للمندوب أو المشرف (عدّل الرقم هنا):
             send_message("رقم_المندوب@c.us", f"📦 طلب جديد من {user_id}:\n{combined}")
             send_message(user_id, "📤 تم إرسال طلبك للمندوب، سيتم التواصل معك قريباً.")
-            user_orders[user_id] = []  # إفراغ الطلبات بعد الإرسال
+            user_orders[user_id] = []  # مسح الطلبات
         return "OK", 200
 
     # رد افتراضي
