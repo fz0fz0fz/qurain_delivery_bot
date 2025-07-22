@@ -13,21 +13,19 @@ def save_data(data):
     with open(ORDERS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-def log_order(user_id, service_name, order):
+def log_order(user_id, service_name, order_text):
     data = load_data()
-    orders = data.get("orders", {})
-    orders.setdefault(user_id, []).append({
+    data["orders"].setdefault(user_id, []).append({
         "service": service_name,
-        "order": order
+        "order": order_text
     })
-    data["orders"] = orders
     save_data(data)
 
-def get_user_orders(user_id):
+def get_all_orders(user_id):
     data = load_data()
     return data.get("orders", {}).get(user_id, [])
 
-def reset_user_orders(user_id):
+def clear_user_orders(user_id):
     data = load_data()
     data["orders"][user_id] = []
     save_data(data)
