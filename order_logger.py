@@ -1,29 +1,51 @@
-# order_logger.py
-
 import json
-from datetime import datetime
 import os
 
-LOG_FILE = "orders_log.json"
+ORDERS_FILE = os.path.join(os.getcwd(), "orders_log.json")
 
-def log_order(user_id, service, order_text):
-    order_data = {
-        "user_id": user_id,
-        "service": service,
-        "order": order_text,
-        "timestamp": datetime.now().isoformat()
-    }
+def load_data():
+    if not os.path.exists(ORDERS_FILE):
+        return {"orders": {}, "states": {}, "last_service": {}}
+    with open(ORDERS_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-    if not os.path.exists(LOG_FILE):
-        with open(LOG_FILE, "w", encoding="utf-8") as f:
-            json.dump([order_data], f, ensure_ascii=False, indent=2)
-    else:
-        with open(LOG_FILE, "r+", encoding="utf-8") as f:
-            try:
-                data = json.load(f)
-            except json.JSONDecodeError:
-                data = []
+def save_data(data):
+    with open(ORDERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
-            data.append(order_data)
-            f.seek(0)
-            json.dump(data, f, ensure_ascii=False, indent=2)
+def log_order(user_id, service_name, order):
+    data = load_data()
+    orders = data.get("orders", {})
+    orders.setdefault(user_id, []).append({
+        "service": service_name,
+        "order": order
+    })
+    data["orders"] = orders
+    save_data(data)
+
+def get_user_orders(user_id):
+    data = load_data()
+    return data.get("orders", {}).get(user_id, [])
+
+def reset_user_orders(user_id):
+    data = load_data()
+    data["orders"][user_id] = []
+    save_data(data)
+
+def set_user_state(user_id, state):
+    data = load_data()
+    data["states"][user_id] = state
+    save_data(data)
+
+def get_user_state(user_id):
+    data = load_data()
+    return data.get("states", {}).get(user_id)
+
+def set_last_service(user_id, service_name):
+    data = load_data()
+    data["last_service"][user_id] = service_name
+    save_data(data)
+
+def get_last_service(user_id):
+    data = load_data()
+    return data.get("last_service", {}).get(user_id)
