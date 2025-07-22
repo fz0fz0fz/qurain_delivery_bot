@@ -2,6 +2,7 @@ from order_logger import get_user_state, set_user_state, log_order
 
 def handle_grocery(user_id, message):
     msg = message.strip()
+    print(f"📦 [GROCERY] المستخدم: {user_id}, الرسالة: {msg}")
 
     if msg == "3":
         return (
