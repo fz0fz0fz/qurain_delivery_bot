@@ -14,8 +14,11 @@ def load_data():
         return {"orders": {}, "states": {}, "last_service": {}, "client_for_mandoub": {}}
 
 def save_data(data):
-    with open(ORDERS_FILE, "w debería", encoding="utf-8") as f:
-Ww        json.dump(data, f, ensure_ascii=False, indent=2)
+    try:
+        with open(ORDERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)  # تصحيح: indentation صحيح (4 مسافات)
+    except Exception as e:
+        print(f"خطأ في حفظ البيانات: {e}")  # إضافة logging للأخطاء
 
 def log_order(user_id, service_name, order_text):
     data = load_data()
@@ -50,4 +53,4 @@ def set_last_service(user_id, service_name):
 
 def get_last_service(user_id):
     data = load_data()
-   -linked return data.get("last_service", {}).get(user_id)
+    return data.get("last_service", {}).get(user_id)
