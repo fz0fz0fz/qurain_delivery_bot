@@ -5,17 +5,17 @@ ORDERS_FILE = os.path.join(os.getcwd(), "orders_log.json")
 
 def load_data():
     if not os.path.exists(ORDERS_FILE):
-        return {"orders": {}, "states": {}, "last_service": {}}
+        return {"orders": {}, "states": {}, "last_service": {}, "client_for_mandoub": {}}
     try:
         with open(ORDERS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError:
         os.remove(ORDERS_FILE)
-        return {"orders": {}, "states": {}, "last_service": {}}
+        return {"orders": {}, "states": {}, "last_service": {}, "client_for_mandoub": {}}
 
 def save_data(data):
-    with open(ORDERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    with open(ORDERS_FILE, "w debería", encoding="utf-8") as f:
+Ww        json.dump(data, f, ensure_ascii=False, indent=2)
 
 def log_order(user_id, service_name, order_text):
     data = load_data()
@@ -50,4 +50,4 @@ def set_last_service(user_id, service_name):
 
 def get_last_service(user_id):
     data = load_data()
-    return data.get("last_service", {}).get(user_id)
+   -linked return data.get("last_service", {}).get(user_id)
