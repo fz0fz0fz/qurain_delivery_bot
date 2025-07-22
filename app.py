@@ -1,37 +1,12 @@
 import os
-import json
 import logging
 from flask import Flask, request, jsonify
 from services.unified_service import handle_service
 from send_utils import send_message, generate_order_id
+from order_logger import get_all_orders
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
-
-user_states = {}
-user_orders = {}
-user_last_service = {}
-
-ORDERS_LOG_FILE = "orders_log.json"
-
-# تحميل الطلبات من الملف إن وُجد
-if os.path.exists(ORDERS_LOG_FILE):
-    with open(ORDERS_LOG_FILE, "r", encoding="utf-8") as f:
-        try:
-            data = json.load(f)
-            user_orders = data.get("orders", {})
-            user_states = data.get("states", {})
-            user_last_service = data.get("last_service", {})
-        except json.JSONDecodeError:
-            pass
-
-def save_orders():
-    with open(ORDERS_LOG_FILE, "w", encoding="utf-8") as f:
-        json.dump({
-            "orders": user_orders,
-            "states": user_states,
-            "last_service": user_last_service
-        }, f, ensure_ascii=False, indent=2)
 
 services = {
     "2": {
@@ -73,7 +48,7 @@ def webhook():
         })
 
     if message == "20":
-        orders = user_orders.get(user_id, [])
+        orders = get_all_orders(user_id)
         if not orders:
             return jsonify({"sent": send_message(phone, "📭 لا توجد طلبات محفوظة.")})
         
@@ -84,7 +59,7 @@ def webhook():
         return jsonify({"sent": send_message(phone, order_text)})
 
     if message == "تم":
-        orders = user_orders.get(user_id, [])
+        orders = get_all_orders(user_id)
         if not orders:
             return jsonify({"sent": send_message(phone, "📭 لا توجد طلبات لإرسالها.")})
 
@@ -95,43 +70,22 @@ def webhook():
 
         send_message(phone, summary)
         # send_message("رقم_مندوب", summary)
-        user_orders[user_id] = []
-        save_orders()
+        
+        # تفريغ الطلبات بعد الإرسال
+        from order_logger import clear_user_orders
+        clear_user_orders(user_id)
+
         return jsonify({"sent": send_message(phone, "✅ تم إرسال طلبك بنجاح. رقم الطلب: " + order_id)})
 
-    if message == "99":
-        last_service = user_last_service.get(user_id)
-        if last_service:
-            for code, service in services.items():
-                if service["name"] == last_service:
-                    response = handle_service(
-                        user_id=user_id,
-                        message=message,
-                        user_states=user_states,
-                        user_orders=user_orders,
-                        service_id=code,
-                        service_name=service["name"],
-                        stores_list=service["stores"]
-                    )
-                    if response:
-                        save_orders()
-                        return jsonify({"sent": send_message(phone, response)})
-
     for code, service in services.items():
-        if message == code:
-            user_last_service[user_id] = service["name"]
-
         response = handle_service(
             user_id=user_id,
             message=message,
-            user_states=user_states,
-            user_orders=user_orders,
             service_id=code,
             service_name=service["name"],
             stores_list=service["stores"]
         )
         if response:
-            save_orders()
             return jsonify({"sent": send_message(phone, response)})
 
     return jsonify({"sent": send_message(phone, "❓ لم أفهم رسالتك، أرسل (0) لعرض القائمة.")})
