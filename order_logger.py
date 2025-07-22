@@ -6,8 +6,12 @@ ORDERS_FILE = os.path.join(os.getcwd(), "orders_log.json")
 def load_data():
     if not os.path.exists(ORDERS_FILE):
         return {"orders": {}, "states": {}, "last_service": {}}
-    with open(ORDERS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(ORDERS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        os.remove(ORDERS_FILE)
+        return {"orders": {}, "states": {}, "last_service": {}}
 
 def save_data(data):
     with open(ORDERS_FILE, "w", encoding="utf-8") as f:
