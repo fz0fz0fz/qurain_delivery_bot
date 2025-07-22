@@ -1,111 +1,104 @@
 import os
-from flask import Flask, request
+import logging
+from flask import Flask, request, jsonify
 from services.unified_service import handle_service
-from utils import send_message, generate_order_id
-from order_logger import log_order  # لتخزين الطلبات
-from dispatcher import dispatch_message  # احتياطي لو احتجته لاحقًا
+from send_utils import send_message, generate_order_id
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
-user_states = {}  # مثل {"9665xxx": "awaiting_order_الصيدلية"}
-user_orders = {}  # مثل {"9665xxx": [{"service": "الصيدلية", "order": "طلب"}]}
+user_states = {}
+user_orders = {}
 
+# الأقسام المشمولة بالدالة الموحدة
+services = {
+    "2": {
+        "name": "الصيدلية",
+        "stores": ["صيدلية الدواء", "صيدلية النهدي", "صيدلية زهرة"]
+    },
+    "3": {
+        "name": "البقالة",
+        "stores": ["بقالة التميمي", "بقالة الخير", "بقالة المدينة"]
+    },
+    "4": {
+        "name": "الخضار",
+        "stores": ["خضار الطازج", "سوق المزارعين", "خضار الوفرة"]
+    }
+}
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.get_json(force=True)
-    print("📨 البيانات المستلمة من UltraMsg:")
-    print(data)
+    data = request.get_json()
+    if not data or "data" not in data:
+        return jsonify({"error": "Invalid payload"}), 400
 
-    msg_data = data.get("data", {})
-    message = msg_data.get("body", "").strip()
-    user_id = msg_data.get("from", "").strip()
+    payload = data["data"]
+    phone = payload["from"]
+    message = payload["body"].strip()
+    user_id = phone
 
-    if not message or not user_id:
-        print("❌ تم استلام بيانات غير صالحة:")
-        print("message:", message)
-        print("user_id:", user_id)
-        return "Invalid", 400
-
-    # القائمة الرئيسية
-    if message in ["0", ".", "٠", "خدمات", "القائمة"]:
-        main_menu = (
-            "*🧾 خدمات القرين:*\n\n"
-            "1️⃣. حكومي\n"
-            "2️⃣. صيدلية 💊\n"
-            "3️⃣. بقالة 🥤\n"
-            "4️⃣. خضار 🥬\n"
-            "5️⃣. رحلات ⛺️\n"
-            "6️⃣. حلا 🍮\n"
-            "7️⃣. أسر منتجة 🥧\n"
-            "8️⃣. مطاعم 🍔\n"
-            "9️⃣. قرطاسية 📗\n"
-            "🔟. محلات 🏪\n"
-            "11. شالية 🏖\n"
-            "12. وايت 🚛\n"
-            "13. شيول 🚜\n"
-            "14. دفان 🏗\n"
-            "15. مواد بناء وعوازل 🧱\n"
-            "16. عمال 👷\n"
-            "17. محلات مهنية 🔨\n"
-            "18. ذبائح وملاحم 🥩\n"
-            "19. نقل مدرسي ومشاوير 🚍\n"
-            "20. طلباتك"
-        )
-        send_message(user_id, main_menu)
-        return "OK", 200
-
-    # الأقسام الموحدة
-    unified_services = [
-        ("2", "الصيدلية", ["صيدلية النهدي", "صيدلية الدواء", "صيدلية زهرة"]),
-        ("3", "البقالة", ["بقالة التميمي", "بقالة الخير", "بقالة المدينة"]),
-        ("4", "الخضار", ["خضار الطازج", "سوق المزارعين", "خضار الوفرة"]),
-    ]
-
-    for service_id, service_name, stores in unified_services:
-        current_state = user_states.get(user_id)
-
-        if (
-            message == service_id
-            or current_state == f"awaiting_order_{service_name}"
-            or (message == "99" and current_state is None)
-        ):
-            response = handle_service(user_id, message, user_states, user_orders, service_id, service_name, stores)
-
-            # إذا تم حفظ الطلب، نخزن أيضاً في orders_log.json
-            if user_states.get(user_id) is None and message not in [service_id, "99"]:
-                log_order(user_id, service_name, message)
-
-            if response:
-                send_message(user_id, response)
-                return "OK", 200
+    # عرض القائمة
+    if message in ["0", ".", "٠", "صفر", "خدمات"]:
+        return jsonify({
+            "sent": send_message(phone,
+                "*📋 قائمة خدمات القرين:*\n"
+                "1️⃣ حكومي\n"
+                "2️⃣ صيدلية 💊\n"
+                "3️⃣ بقالة 🥤\n"
+                "4️⃣ خضار 🥬\n"
+                "...\n"
+                "20. طلباتك"
+            )
+        })
 
     # عرض الطلبات
-    if message in ["20", "طلباتك"]:
+    if message == "20":
         orders = user_orders.get(user_id, [])
         if not orders:
-            send_message(user_id, "🗃 لا يوجد طلبات محفوظة حالياً.")
-        else:
-            summary = "🗂 *ملخص طلباتك:*\n"
-            for i, item in enumerate(orders, 1):
-                summary += f"{i}. ({item['service']}) {item['order']}\n"
-            summary += "\n✅ أرسل *تم* للإرسال النهائي."
-            send_message(user_id, summary)
-        return "OK", 200
+            return jsonify({"sent": send_message(phone, "📭 لا توجد طلبات محفوظة.")})
 
-    # إنهاء الطلبات
-    if message.strip() == "تم":
+        order_text = "*🧾 طلباتك الحالية:*\n"
+        for i, item in enumerate(orders, 1):
+            order_text += f"{i}. [{item['service']}] {item['order']}\n"
+        order_text += "\n✉️ أرسل (تم) لإرسال الطلب للمندوب."
+        return jsonify({"sent": send_message(phone, order_text)})
+
+    # إرسال الطلب النهائي
+    if message == "تم":
         orders = user_orders.get(user_id, [])
         if not orders:
-            send_message(user_id, "❌ لا يوجد أي طلبات لإرسالها.")
-        else:
-            order_id = generate_order_id()
-            combined = "\n".join([f"- ({o['service']}) {o['order']}" for o in orders])
-            send_message("رقم_المندوب@c.us", f"📦 *طلب جديد* رقم #{order_id} من {user_id}:\n{combined}")
-            send_message(user_id, f"📤 تم إرسال طلبك بنجاح ✅\n*رقم الطلب: {order_id}*\nسيتم التواصل معك قريباً.")
-            user_orders[user_id] = []  # إفراغ الطلبات بعد الإرسال
-        return "OK", 200
+            return jsonify({"sent": send_message(phone, "📭 لا توجد طلبات لإرسالها.")})
+
+        order_id = generate_order_id()
+        summary = f"📦 *طلب جديد {order_id}:*\n"
+        for i, item in enumerate(orders, 1):
+            summary += f"{i}. [{item['service']}] {item['order']}\n"
+
+        send_message(phone, summary)
+        # send_message("رقم_مندوب", summary) ← استبدله عند الحاجة
+        user_orders[user_id] = []
+        return jsonify({"sent": send_message(phone, "✅ تم إرسال طلبك بنجاح. رقم الطلب: " + order_id)})
+
+    # تمرير إلى الخدمة المناسبة فقط
+    current_state = user_states.get(user_id)
+    for code, service in services.items():
+        is_relevant = (
+            message == code or
+            current_state == f"awaiting_order_{service['name']}" or
+            (message == "99" and current_state == f"awaiting_order_{service['name']}")
+        )
+        if is_relevant:
+            response = handle_service(
+                user_id=user_id,
+                message=message,
+                user_states=user_states,
+                user_orders=user_orders,
+                service_id=code,
+                service_name=service["name"],
+                stores_list=service["stores"]
+            )
+            if response:
+                return jsonify({"sent": send_message(phone, response)})
 
     # رد افتراضي
-    send_message(user_id, "❓ لم أفهم رسالتك، أرسل (0) لعرض القائمة.")
-    return "OK", 200
+    return jsonify({"sent": send_message(phone, "❓ لم أفهم رسالتك، أرسل (0) لعرض القائمة.")})
