@@ -1,16 +1,38 @@
 import os
+import json
 import logging
 from flask import Flask, request, jsonify
-from services.unified_service import handle_service  # دالة موحدة للخدمات
+from services.unified_service import handle_service
 from send_utils import send_message, generate_order_id
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
-user_states = {}  # {"9665xxxx": "awaiting_order_الصيدلية"}
-user_orders = {}  # {"9665xxxx": [{"service": "الصيدلية", "order": "اسم المنتج"}]}
+user_states = {}
+user_orders = {}
+user_last_service = {}
 
-# الأقسام المفعلة حاليًا
+ORDERS_LOG_FILE = "orders_log.json"
+
+# تحميل الطلبات من الملف إن وُجد
+if os.path.exists(ORDERS_LOG_FILE):
+    with open(ORDERS_LOG_FILE, "r", encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+            user_orders = data.get("orders", {})
+            user_states = data.get("states", {})
+            user_last_service = data.get("last_service", {})
+        except json.JSONDecodeError:
+            pass
+
+def save_orders():
+    with open(ORDERS_LOG_FILE, "w", encoding="utf-8") as f:
+        json.dump({
+            "orders": user_orders,
+            "states": user_states,
+            "last_service": user_last_service
+        }, f, ensure_ascii=False, indent=2)
+
 services = {
     "2": {
         "name": "الصيدلية",
@@ -37,7 +59,6 @@ def webhook():
     message = payload["body"].strip()
     user_id = phone
 
-    # القائمة الرئيسية
     if message in ["0", ".", "٠", "صفر", "خدمات"]:
         return jsonify({
             "sent": send_message(phone,
@@ -51,19 +72,17 @@ def webhook():
             )
         })
 
-    # عرض الطلبات
     if message == "20":
         orders = user_orders.get(user_id, [])
         if not orders:
             return jsonify({"sent": send_message(phone, "📭 لا توجد طلبات محفوظة.")})
-
+        
         order_text = "*🧾 طلباتك الحالية:*\n"
         for i, item in enumerate(orders, 1):
             order_text += f"{i}. [{item['service']}] {item['order']}\n"
         order_text += "\n✉️ أرسل (تم) لإرسال الطلب للمندوب."
         return jsonify({"sent": send_message(phone, order_text)})
 
-    # إرسال الطلب النهائي
     if message == "تم":
         orders = user_orders.get(user_id, [])
         if not orders:
@@ -75,30 +94,44 @@ def webhook():
             summary += f"{i}. [{item['service']}] {item['order']}\n"
 
         send_message(phone, summary)
-        # send_message("رقم_مندوب", summary) ← استبدله لاحقًا عند التوصيل
+        # send_message("رقم_مندوب", summary)
         user_orders[user_id] = []
+        save_orders()
         return jsonify({"sent": send_message(phone, "✅ تم إرسال طلبك بنجاح. رقم الطلب: " + order_id)})
 
-    # تمرير للخدمات فقط إذا كان المستخدم في نفس الخدمة
+    if message == "99":
+        last_service = user_last_service.get(user_id)
+        if last_service:
+            for code, service in services.items():
+                if service["name"] == last_service:
+                    response = handle_service(
+                        user_id=user_id,
+                        message=message,
+                        user_states=user_states,
+                        user_orders=user_orders,
+                        service_id=code,
+                        service_name=service["name"],
+                        stores_list=service["stores"]
+                    )
+                    if response:
+                        save_orders()
+                        return jsonify({"sent": send_message(phone, response)})
+
     for code, service in services.items():
-        current_state = user_states.get(user_id)
+        if message == code:
+            user_last_service[user_id] = service["name"]
 
-        if (
-            message == code or
-            current_state == f"awaiting_order_{service['name']}" or
-            (message == "99" and current_state == f"awaiting_order_{service['name']}")
-        ):
-            response = handle_service(
-                user_id=user_id,
-                message=message,
-                user_states=user_states,
-                user_orders=user_orders,
-                service_id=code,
-                service_name=service["name"],
-                stores_list=service["stores"]
-            )
-            if response:
-                return jsonify({"sent": send_message(phone, response)})
+        response = handle_service(
+            user_id=user_id,
+            message=message,
+            user_states=user_states,
+            user_orders=user_orders,
+            service_id=code,
+            service_name=service["name"],
+            stores_list=service["stores"]
+        )
+        if response:
+            save_orders()
+            return jsonify({"sent": send_message(phone, response)})
 
-    # الرد الافتراضي
     return jsonify({"sent": send_message(phone, "❓ لم أفهم رسالتك، أرسل (0) لعرض القائمة.")})
