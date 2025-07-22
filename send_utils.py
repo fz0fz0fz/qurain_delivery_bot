@@ -7,8 +7,8 @@ def generate_order_id():
     return "G" + ''.join(random.choices(string.digits, k=3))
 
 def send_message(phone, message):
-    instance_id = os.getenv("ULTRA_INSTANCE_ID", "instance130542")
-    token = os.getenv("ULTRA_TOKEN", "pr2bhaor2vevcrts")
+    instance_id = os.getenv("ULTRA_INSTANCE_ID", "instance130542")  # fallback, غيرها إلى no fallback in production
+    token = os.getenv("ULTRA_TOKEN", "pr2bhaor2vevcrts")  # fallback, غيرها
     url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
 
     payload = {
