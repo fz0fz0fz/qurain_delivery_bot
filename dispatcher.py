@@ -22,7 +22,6 @@ def dispatch_message(message, user_id):
             "2️⃣ صيدلية 💊\n"
             "3️⃣ بقالة 🥤\n"
             "4️⃣ خضار 🥬\n"
-            "99. اطلب الآن\n"
             "20. طلباتك"
         )
         send_message(user_id, reply)
@@ -53,18 +52,17 @@ def dispatch_message(message, user_id):
             summary += f"{i}. [{item['service']}] {item['order']}\n"
 
         send_message(user_id, summary)
-        # send_message("رقم_مندوب", summary)  # للتفعيل لاحقًا
+        # send_message("رقم_مندوب", summary)  # لتفعيل الإرسال الحقيقي
         clear_user_orders(user_id)
 
         send_message(user_id, f"✅ تم إرسال طلبك بنجاح. رقم الطلب: {order_id}")
         return
 
-    # توزيع الرسالة على الخدمات
+    # توزيع الرسالة على الخدمات حسب الملفات المستقلة
     for handler in (handle_pharmacy, handle_grocery, handle_vegetable):
         response = handler(user_id, message)
         if response:
             send_message(user_id, response)
             return
 
-    # في حال عدم فهم الرسالة
     send_message(user_id, "❓ لم أفهم رسالتك، أرسل (0) لعرض القائمة.")
