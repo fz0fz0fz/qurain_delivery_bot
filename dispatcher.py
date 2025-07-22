@@ -62,7 +62,7 @@ def dispatch_message(message, user_id):
     for handler in (handle_pharmacy, handle_grocery, handle_vegetable):
         response = handler(user_id, message)
         if response:
+            print(f"✅ تم الرد من: {handler.__name__}")  # هذا السطر فقط للتتبع
             send_message(user_id, response)
             return
 
-    send_message(user_id, "❓ لم أفهم رسالتك، أرسل (0) لعرض القائمة.")
