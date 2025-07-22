@@ -2,7 +2,7 @@ from services.pharmacy import handle_pharmacy
 from services.grocery import handle_grocery
 from services.vegetable import handle_vegetable
 from send_utils import send_message, generate_order_id
-from order_logger import get_all_orders
+from order_logger import get_all_orders, clear_user_orders
 
 def dispatch_message(message, user_id):
     if not message or not user_id:
@@ -53,19 +53,18 @@ def dispatch_message(message, user_id):
             summary += f"{i}. [{item['service']}] {item['order']}\n"
 
         send_message(user_id, summary)
-        # send_message("رقم_مندوب", summary)  # تفعيل لاحقًا
-        from order_logger import clear_user_orders
+        # send_message("رقم_مندوب", summary)  # للتفعيل لاحقًا
         clear_user_orders(user_id)
 
         send_message(user_id, f"✅ تم إرسال طلبك بنجاح. رقم الطلب: {order_id}")
         return
 
-    # توزيع الرسالة على الخدمات حسب الرقم
+    # توزيع الرسالة على الخدمات
     for handler in (handle_pharmacy, handle_grocery, handle_vegetable):
         response = handler(user_id, message)
         if response:
             send_message(user_id, response)
             return
 
-    # إذا لم يتم التعرف على الرسالة
+    # في حال عدم فهم الرسالة
     send_message(user_id, "❓ لم أفهم رسالتك، أرسل (0) لعرض القائمة.")
