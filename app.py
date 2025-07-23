@@ -3,11 +3,11 @@ from flask import Flask, request
 from dispatcher import dispatch_message
 from send_utils import send_message
 
-app = Flask(__name__)
-
-# حافظات الجلسة (مؤقتة داخل الذاكرة)
+# متغيرات لحفظ حالة المستخدم والطلبات
 user_states = {}
 user_orders = {}
+
+app = Flask(__name__)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -23,14 +23,11 @@ def webhook():
         print("❌ تم استلام بيانات غير صالحة")
         return "Invalid", 400
 
-    # تمرير الرسالة للدالة الموحدة
+    # ✅ استدعاء الدالة الرئيسية وتمرير البيانات اللازمة
     response = dispatch_message(user_id, message, user_states, user_orders)
 
     if response:
         send_message(user_id, response)
-    else:
-        # رد افتراضي عند عدم الفهم
-        send_message(user_id, "🤖 عذرًا، لم أفهم رسالتك. أرسل 0 لعرض القائمة.")
 
     return "OK", 200
 
