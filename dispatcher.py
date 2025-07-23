@@ -54,7 +54,23 @@ def handle_finalize_order(user_id, message, user_orders):
     # إرسال لكل محل حسب القسم
     for service, order in orders.items():
         vendor_msg = f"*طلب جديد - {service}*\nرقم الطلب: {order_id}\n- {order}"
-        send_message("966503813344", vendor_msg)  # غيّر الرقم عند الربط الفعلي
+        send_message("966503813344", vendor_msg)  # يمكن تغيير الرقم لاحقًا
 
     user_orders.pop(user_id, None)
     return None
+
+# ✅ الدالة الرئيسية لتوجيه الرسائل
+def dispatch_message(user_id, message, user_states, user_orders):
+    response = handle_feedback(user_id, message, user_states)
+    if response:
+        return response
+
+    response = handle_view_orders(user_id, message, user_orders)
+    if response:
+        return response
+
+    response = handle_finalize_order(user_id, message, user_orders)
+    if response:
+        return response
+
+    return None  # إذا لم يفهم الرسالة
