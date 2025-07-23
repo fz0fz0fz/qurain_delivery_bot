@@ -64,10 +64,7 @@ def handle_finalize_order(user_id, message, user_orders):
         return None
 
     orders = user_orders.get(user_id)
-    print("🟢 orders داخل handle_finalize_order:", orders)
-
     if not orders:
-        print("❗️ لا توجد طلبات للإرسال.")
         return "❗️لا توجد طلبات لإرسالها."
 
     order_id = generate_order_id()
@@ -75,44 +72,47 @@ def handle_finalize_order(user_id, message, user_orders):
     for service, order in orders.items():
         summary += f"\n📦 *{service}:*\n- {order}"
 
-    print("💾 حفظ الطلب...")
     save_order(order_id, user_id, orders)
 
-    print("📤 إرسال للمناديب...")
+    # إرسال للمندوب
     send_message("966503813344", f"📦 طلب جديد من {user_id}:\n\n{summary}")
 
-    print("📤 إرسال للعميل...")
-    send_message(user_id, f"✅ تم إرسال طلبك بنجاح، رقم الطلب هو *{order_id}*")
-
-    print("📤 إرسال للمحلات...")
+    # إرسال لكل محل حسب القسم
     for service, order in orders.items():
         vendor_msg = f"*طلب جديد - {service}*\nرقم الطلب: {order_id}\n- {order}"
         send_message("966503813344", vendor_msg)
 
-    print("🧹 حذف الطلبات...")
+    # حذف الطلبات بعد الإرسال
     user_orders.pop(user_id, None)
 
-    return None
+    # إرسال للعميل + رد ظاهر له
+    msg = f"✅ تم إرسال طلبك بنجاح، رقم الطلب هو *{order_id}*"
+    send_message(user_id, msg)
+    return msg
 
-# ✅ الدالة الرئيسية
+# ✅ الدالة الرئيسية التي تُستخدم في app.py
 def dispatch_message(user_id, message, user_states, user_orders):
+    # القائمة الرئيسية
     response = handle_main_menu(message)
     if response:
         return response
 
+    # الشكاوى
     response = handle_feedback(user_id, message, user_states)
     if response:
         return response
 
+    # عرض الطلبات
     response = handle_view_orders(user_id, message, user_orders)
     if response:
         return response
 
+    # إنهاء الطلبات
     response = handle_finalize_order(user_id, message, user_orders)
     if response:
         return response
 
-    # الخدمات الموحدة
+    # الخدمات الموحدة مثل صيدلية، بقالة، خضار
     for service_id, service_info in {
         "2": {"name": "الصيدلية", "stores": ["صيدلية الدواء", "صيدلية النهدي"]},
         "3": {"name": "البقالة", "stores": ["بقالة التميمي", "بقالة الخير"]},
@@ -130,4 +130,4 @@ def dispatch_message(user_id, message, user_states, user_orders):
         if response:
             return response
 
-    return None
+    return None  # لا يوجد رد مفهوم
