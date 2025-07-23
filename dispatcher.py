@@ -70,7 +70,7 @@ def dispatch_message(message, user_id):
     if msg == "20":
         user_orders = orders.get(user_id, [])
         if user_orders:
-            response = "*📝 طلباتك الحالية:*
+            response = "*📝 طلباتك الحالية:*\n" + "\n".join([f"- {o}" for o in user_orders])
 " + "\n".join([f"- {o}" for o in user_orders])
         else:
             response = "📭 لا يوجد طلبات محفوظة حتى الآن."
