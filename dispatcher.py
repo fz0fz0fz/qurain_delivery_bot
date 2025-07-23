@@ -54,8 +54,8 @@ def dispatch_message(message, user_id):
         elif states.get(user_id, {}).get("mandob_state") == "awaiting_location":
             customer_id = data.get("customer_for_order", {}).get(user_id, "")
             if customer_id:
-                send_message(customer_id, f"📍 موقع المندوب:
-{msg}")
+                send_message(customer_id, f"📍 موقع المندوب:\n{msg}")
+
             states[user_id]["mandob_state"] = None
             save_data(data)
             return
