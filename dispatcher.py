@@ -1,6 +1,5 @@
 from send_utils import send_message, generate_order_id
 from order_logger import save_order
-from unified_service import handle_service
 
 # عرض القائمة الرئيسية عند إرسال "0" أو "." أو "٠" أو "خدمات"
 def handle_main_menu(message):
@@ -48,9 +47,10 @@ def handle_feedback(user_id, message, user_states):
 def handle_view_orders(user_id, message, user_orders):
     if message.strip() == "20":
         orders = user_orders.get(user_id, {})
+        print("📦 عرض الطلبات:", orders)
         if not orders:
             return "📭 لا توجد طلبات محفوظة حتى الآن."
-        
+
         response = "*🗂 طلباتك المحفوظة:*\n"
         for service, order in orders.items():
             response += f"\n📌 *{service}:*\n- {order}"
@@ -90,12 +90,12 @@ def handle_finalize_order(user_id, message, user_orders):
 
 # ✅ الدالة الرئيسية التي تُستخدم في app.py
 def dispatch_message(user_id, message, user_states, user_orders):
-    # القائمة الرئيسية
+    # عرض القائمة
     response = handle_main_menu(message)
     if response:
         return response
 
-    # الشكاوى
+    # اقتراح أو شكوى
     response = handle_feedback(user_id, message, user_states)
     if response:
         return response
@@ -105,27 +105,9 @@ def dispatch_message(user_id, message, user_states, user_orders):
     if response:
         return response
 
-    # إنهاء الطلبات
+    # إنهاء الطلب
     response = handle_finalize_order(user_id, message, user_orders)
     if response:
         return response
 
-    # الخدمات الموحدة مثل صيدلية، بقالة، خضار
-    for service_id, service_info in {
-        "2": {"name": "الصيدلية", "stores": ["صيدلية الدواء", "صيدلية النهدي"]},
-        "3": {"name": "البقالة", "stores": ["بقالة التميمي", "بقالة الخير"]},
-        "4": {"name": "الخضار", "stores": ["خضار الطازج", "سوق المزارعين"]},
-    }.items():
-        response = handle_service(
-            user_id,
-            message,
-            user_states,
-            user_orders,
-            service_id,
-            service_info["name"],
-            service_info["stores"]
-        )
-        if response:
-            return response
-
-    return None  # لا يوجد رد مفهوم
+    return None  # لا يوجد رد محدد
