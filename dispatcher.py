@@ -1,90 +1,60 @@
-
-import random
-from order_logger import load_data, save_data, log_order, get_all_orders, clear_user_orders
 from send_utils import send_message, generate_order_id
-from mandoubs import mandoubs
-from vendors import vendors
-from unified_service import handle_service
+from order_logger import save_order
 
-SERVICES = {
-    "1": "حكومي 🏢",
-    "2": "صيدلية 💊",
-    "3": "بقالة 🥤",
-    "4": "خضار 🥬",
-    "5": "رحلات ⛺️",
-    "6": "حلا 🍮",
-    "7": "أسر منتجة 🥧",
-    "8": "مطاعم 🍔",
-    "9": "قرطاسية 📗",
-    "10": "محلات 🏪",
-    "11": "شالية 🏖",
-    "12": "وايت 🚛",
-    "13": "شيول 🚜",
-    "14": "دفان 🏗",
-    "15": "مواد بناء وعوازل 🧱",
-    "16": "عمال 👷",
-    "17": "محلات مهنية 🔨",
-    "18": "ذبائح وملاحم 🥩",
-    "19": "نقل مدرسي ومشاوير 🚍",
-    "20": "طلباتك"
-}
+# حالة المستخدم 100 للشكوى أو الاقتراح
+def handle_feedback(user_id, message, user_states):
+    if message.strip() == "100":
+        user_states[user_id] = "awaiting_feedback"
+        return "✉️ أرسل الآن رسالتك (اقتراح أو شكوى)"
 
-NO_REQUEST_SERVICES = ["1", "16"]
+    elif user_states.get(user_id) == "awaiting_feedback":
+        user_states.pop(user_id, None)
+        send_message("966503813344", f"💬 شكوى من {user_id}:\n{message}")
+        return "✅ تم استلام رسالتك، شكرًا لك."
 
-def dispatch_message(message, user_id):
-    data = load_data()
-    states = data["states"]
-    orders = data["orders"]
-    msg = message.strip()
+    return None
 
-    # شكوى
-    if msg == "100":
-        send_message("966503813344", f"💬 شكوى من {user_id}:\n{msg}")
-        send_message(user_id, "✉️ تم تحويل شكواك للإدارة، شكرًا لك.")
-        return
+# عرض الطلبات السابقة
+def handle_view_orders(user_id, message, user_orders):
+    if message.strip() == "20":
+        orders = user_orders.get(user_id, {})
+        if not orders:
+            return "📭 لا توجد طلبات محفوظة حتى الآن."
+        
+        response = "*🗂 طلباتك المحفوظة:*\n"
+        for service, order in orders.items():
+            response += f"\n📌 *{service}:*\n- {order}"
+        response += "\n\nعند الانتهاء، أرسل كلمة *تم* لإرسال الطلب."
+        return response
+    return None
 
-    # مناديب
-    mandoub_ids = [m["id"] for m in mandoubs]
-    if user_id in mandoub_ids:
-        if msg == "موافق":
-            states[user_id] = {"mandob_state": "awaiting_location"}
-            save_data(data)
-            send_message(user_id, "أرسل موقعك المباشر.")
-            return
-        elif states.get(user_id, {}).get("mandob_state") == "awaiting_location":
-            customer_id = data.get("customer_for_order", {}).get(user_id, "")
-            if customer_id:
-                send_message(customer_id, f"📍 موقع المندوب:\n{msg}")
+# استقبال كلمة "تم" لإرسال الطلب
+def handle_finalize_order(user_id, message, user_orders):
+    if message.strip() != "تم":
+        return None
 
-            states[user_id]["mandob_state"] = None
-            save_data(data)
-            return
+    orders = user_orders.get(user_id)
+    if not orders:
+        return "❗️لا توجد طلبات لإرسالها."
 
-    # القائمة الرئيسية
-    if msg in ["0", "خدمات", ".", "٠", "صفر", "القائمة"]:
-        menu = "*🧾 خدمات القرين:*\n" + "\n".join([f"{k}. {v}" for k, v in SERVICES.items()])
-        send_message(user_id, menu)
-        return
+    order_id = generate_order_id()
+    summary = f"*🆔 رقم الطلب: {order_id}*\n"
+    for service, order in orders.items():
+        summary += f"\n📦 *{service}:*\n- {order}"
 
-    # عرض الطلبات
-    if msg == "20":
-        user_orders = orders.get(user_id, [])
-        if user_orders:
-            response = "*📝 طلباتك الحالية:*\n" + "\n".join([f"- {o}" for o in user_orders])
-" + "\n".join([f"- {o}" for o in user_orders])
-        else:
-            response = "📭 لا يوجد طلبات محفوظة حتى الآن."
-        send_message(user_id, response)
-        return
+    # حفظ الطلب
+    save_order(order_id, user_id, orders)
 
-    # خدمة محددة
-    for sid, sname in SERVICES.items():
-        stores = vendors.get(sid, {}).get("stores", [])
-        response = handle_service(user_id, msg, states, orders, sid, sname, stores)
-        if response:
-            save_data(data)
-            send_message(user_id, response)
-            return
+    # إرسال للمندوب (رقم افتراضي)
+    send_message("966503813344", f"📦 طلب جديد من {user_id}:\n\n{summary}")
 
-    # غير مفهومة
-    send_message(user_id, "❓ لم أفهم، أرسل (0) للقائمة.")
+    # إرسال للعميل
+    send_message(user_id, f"✅ تم إرسال طلبك بنجاح، رقم الطلب هو *{order_id}*")
+
+    # إرسال لكل محل حسب القسم
+    for service, order in orders.items():
+        vendor_msg = f"*طلب جديد - {service}*\nرقم الطلب: {order_id}\n- {order}"
+        send_message("966503813344", vendor_msg)  # غيّر الرقم عند الربط الفعلي
+
+    user_orders.pop(user_id, None)
+    return None
