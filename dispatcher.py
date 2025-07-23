@@ -39,8 +39,7 @@ def dispatch_message(message, user_id):
 
     # شكوى
     if msg == "100":
-        send_message("966503813344", f"💬 شكوى من {user_id}:
-{msg}")
+        send_message("966503813344", f"💬 شكوى من {user_id}:\n{msg}")
         send_message(user_id, "✉️ تم تحويل شكواك للإدارة، شكرًا لك.")
         return
 
