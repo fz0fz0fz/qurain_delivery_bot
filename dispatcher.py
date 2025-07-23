@@ -1,5 +1,6 @@
 from send_utils import send_message, generate_order_id
 from order_logger import save_order
+from unified_service import handle_service
 
 # عرض القائمة الرئيسية عند إرسال "0" أو "." أو "٠" أو "خدمات"
 def handle_main_menu(message):
@@ -89,12 +90,12 @@ def handle_finalize_order(user_id, message, user_orders):
 
 # ✅ الدالة الرئيسية التي تُستخدم في app.py
 def dispatch_message(user_id, message, user_states, user_orders):
-    # عرض القائمة
+    # القائمة الرئيسية
     response = handle_main_menu(message)
     if response:
         return response
 
-    # اقتراح أو شكوى
+    # الشكاوى
     response = handle_feedback(user_id, message, user_states)
     if response:
         return response
@@ -104,9 +105,27 @@ def dispatch_message(user_id, message, user_states, user_orders):
     if response:
         return response
 
-    # إنهاء الطلب
+    # إنهاء الطلبات
     response = handle_finalize_order(user_id, message, user_orders)
     if response:
         return response
 
-    return None  # لا يوجد رد محدد
+    # الخدمات الموحدة مثل صيدلية، بقالة، خضار
+    for service_id, service_info in {
+        "2": {"name": "الصيدلية", "stores": ["صيدلية الدواء", "صيدلية النهدي"]},
+        "3": {"name": "البقالة", "stores": ["بقالة التميمي", "بقالة الخير"]},
+        "4": {"name": "الخضار", "stores": ["خضار الطازج", "سوق المزارعين"]},
+    }.items():
+        response = handle_service(
+            user_id,
+            message,
+            user_states,
+            user_orders,
+            service_id,
+            service_info["name"],
+            service_info["stores"]
+        )
+        if response:
+            return response
+
+    return None  # لا يوجد رد مفهوم
