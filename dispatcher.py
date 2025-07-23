@@ -1,7 +1,36 @@
 from send_utils import send_message, generate_order_id
 from order_logger import save_order
 
-# حالة المستخدم 100 للشكوى أو الاقتراح
+# عرض القائمة الرئيسية عند إرسال "0" أو "." أو "٠" أو "خدمات"
+def handle_main_menu(message):
+    if message.strip() in ["0", ".", "٠", "خدمات"]:
+        return (
+            "*📋 خدمات القرين:*\n"
+            "1️⃣ حكومي\n"
+            "2️⃣ صيدلية 💊\n"
+            "3️⃣ بقالة 🥤\n"
+            "4️⃣ خضار 🥬\n"
+            "5️⃣ رحلات ⛺️\n"
+            "6️⃣ حلا 🍮\n"
+            "7️⃣ أسر منتجة 🥧\n"
+            "8️⃣ مطاعم 🍔\n"
+            "9️⃣ قرطاسية 📗\n"
+            "🔟 محلات 🏪\n"
+            "11. شالية 🏖\n"
+            "12. وايت 🚛\n"
+            "13. شيول 🚜\n"
+            "14. دفان 🏗\n"
+            "15. مواد بناء وعوازل 🧱\n"
+            "16. عمال 👷\n"
+            "17. محلات مهنية 🔨\n"
+            "18. ذبائح وملاحم 🥩\n"
+            "19. نقل مدرسي ومشاوير 🚍\n"
+            "20. طلباتك 🧾\n\n"
+            "✉️ لاقتراح أو شكوى أرسل: 100"
+        )
+    return None
+
+# معالجة الشكاوى أو الاقتراحات
 def handle_feedback(user_id, message, user_states):
     if message.strip() == "100":
         user_states[user_id] = "awaiting_feedback"
@@ -28,7 +57,7 @@ def handle_view_orders(user_id, message, user_orders):
         return response
     return None
 
-# استقبال كلمة "تم" لإرسال الطلب
+# إنهاء الطلبات
 def handle_finalize_order(user_id, message, user_orders):
     if message.strip() != "تم":
         return None
@@ -42,10 +71,9 @@ def handle_finalize_order(user_id, message, user_orders):
     for service, order in orders.items():
         summary += f"\n📦 *{service}:*\n- {order}"
 
-    # حفظ الطلب
     save_order(order_id, user_id, orders)
 
-    # إرسال للمندوب (رقم افتراضي)
+    # إرسال للمندوب
     send_message("966503813344", f"📦 طلب جديد من {user_id}:\n\n{summary}")
 
     # إرسال للعميل
@@ -54,23 +82,31 @@ def handle_finalize_order(user_id, message, user_orders):
     # إرسال لكل محل حسب القسم
     for service, order in orders.items():
         vendor_msg = f"*طلب جديد - {service}*\nرقم الطلب: {order_id}\n- {order}"
-        send_message("966503813344", vendor_msg)  # يمكن تغيير الرقم لاحقًا
+        send_message("966503813344", vendor_msg)
 
     user_orders.pop(user_id, None)
     return None
 
-# ✅ الدالة الرئيسية لتوجيه الرسائل
+# ✅ الدالة الرئيسية التي تُستخدم في app.py
 def dispatch_message(user_id, message, user_states, user_orders):
+    # عرض القائمة
+    response = handle_main_menu(message)
+    if response:
+        return response
+
+    # اقتراح أو شكوى
     response = handle_feedback(user_id, message, user_states)
     if response:
         return response
 
+    # عرض الطلبات
     response = handle_view_orders(user_id, message, user_orders)
     if response:
         return response
 
+    # إنهاء الطلب
     response = handle_finalize_order(user_id, message, user_orders)
     if response:
         return response
 
-    return None  # إذا لم يفهم الرسالة
+    return None  # لا يوجد رد محدد
