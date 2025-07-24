@@ -7,7 +7,13 @@ from send_utils import send_message
 user_states = {}
 user_orders = {}
 
+# استيراد قائمة المناديب
+from mandoubs import mandoubs
+
 app = Flask(__name__)
+
+def is_mandoub(user_id):
+    return any(m["id"] == user_id for m in mandoubs)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -23,8 +29,11 @@ def webhook():
         print("❌ تم استلام بيانات غير صالحة")
         return "Invalid", 400
 
-    # ✅ استدعاء الدالة الرئيسية وتمرير البيانات اللازمة
-    response = dispatch_message(user_id, message, user_states, user_orders)
+    # ✅ تمييز إذا كان المرسل مندوب أو عميل
+    if is_mandoub(user_id):
+        response = dispatch_message(user_id, message, user_states, user_orders, driver_id=user_id)
+    else:
+        response = dispatch_message(user_id, message, user_states, user_orders)
 
     if response:
         send_message(user_id, response)
