@@ -1,5 +1,11 @@
 {
-  "orders": {},
-  "states": {},
-  "last_service": {}
+  "orders": {
+    "G123": {
+      "user_id": "9665xxxxxxx@c.us",
+      "orders": { "الصيدلية": "ندول" },
+      "status": "pending",
+      "assigned_to": null,
+      "sent_to": []
+    }
+  }
 }
