@@ -88,7 +88,7 @@ def handle_finalize_order(user_id, message, user_orders):
 
     msg = f"✅ تم إرسال طلبك للمحلات لتجهيزه برقم *{order_id}*، وتم أيضًا إرسال الطلب للمندوب لتوصيله. سيتواصل معك أحد المناديب قريبًا."
     send_message(user_id, msg)
-    return msg
+    return None
 
 # ✅ الدالة الرئيسية التي تُستخدم في app.py
 def dispatch_message(user_id, message, user_states, user_orders):
