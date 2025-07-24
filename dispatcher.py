@@ -86,11 +86,8 @@ def handle_finalize_order(user_id, message, user_orders):
     # حذف الطلبات بعد الإرسال
     user_orders.pop(user_id, None)
 
-    msg = (
-    f"✅ تم إرسال طلبك للمحلات لتجهيزه برقم *{order_id}*، "
-    "وتم أيضًا إرسال الطلب للمندوب لتوصيله. "
-    "سيتواصل معك أحد المناديب قريبًا."
-)
+    msg = f"✅ تم إرسال طلبك للمحلات لتجهيزه برقم *{order_id}*، وتم أيضًا إرسال الطلب للمندوب لتوصيله. سيتواصل معك أحد المناديب قريبًا."
+    
 send_message(user_id, msg)
 return msg
 
