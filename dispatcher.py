@@ -97,9 +97,9 @@ def handle_finalize_order(user_id, message, user_orders):
 
     # إرسال كل جزء للمحلات
     for service, order in orders.items():
-        for vendor in vendors.get(service, []):
-            vendor_msg = f"*📦 طلب جديد - {service}*\n📍 {vendor}\nرقم الطلب: {order_id}\n- {order}"
-            send_message("966503813344", vendor_msg)  # لاحقًا يتم تخصيص الرقم
+    vendor_msg = f"*📦 طلب جديد - {service}*\nرقم الطلب: {order_id}\n- {order}"
+    send_message("966503813344", vendor_msg)
+  # لاحقًا يتم تخصيص الرقم
 
     # حذف الطلب بعد الإرسال
     user_orders.pop(user_id, None)
