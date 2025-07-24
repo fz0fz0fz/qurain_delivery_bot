@@ -1,8 +1,11 @@
-from send_utils import send_message, generate_order_id
-from order_logger import save_order
-from unified_service import handle_service
+# dispatcher.py
 
-# عرض القائمة الرئيسية عند إرسال "0" أو "." أو "٠" أو "خدمات"
+from send_utils import send_message, generate_order_id
+from order_logger import save_order, load_orders, save_all_orders
+from unified_service import handle_service
+from mandoubs import get_next_mandoub
+
+# القائمة الرئيسية
 def handle_main_menu(message):
     if message.strip() in ["0", ".", "٠", "خدمات"]:
         return (
@@ -31,7 +34,7 @@ def handle_main_menu(message):
         )
     return None
 
-# معالجة الشكاوى أو الاقتراحات
+# الشكاوى
 def handle_feedback(user_id, message, user_states):
     if message.strip() == "100":
         user_states[user_id] = "awaiting_feedback"
@@ -44,13 +47,13 @@ def handle_feedback(user_id, message, user_states):
 
     return None
 
-# عرض الطلبات السابقة
+# عرض الطلبات
 def handle_view_orders(user_id, message, user_orders):
     if message.strip() == "20":
         orders = user_orders.get(user_id, {})
         if not orders:
             return "📭 لا توجد طلبات محفوظة حتى الآن."
-        
+
         response = "*🗂 طلباتك المحفوظة:*\n"
         for service, order in orders.items():
             response += f"\n📌 *{service}:*\n- {order}"
@@ -58,7 +61,33 @@ def handle_view_orders(user_id, message, user_orders):
         return response
     return None
 
-# إنهاء الطلبات
+# إرسال الطلب لمندوب جديد
+def send_order_to_next_mandoub(order_id):
+    orders_data = load_orders()
+    order = orders_data.get("orders", {}).get(order_id)
+
+    if not order:
+        print(f"❌ الطلب {order_id} غير موجود.")
+        return
+
+    sent_to = order.get("sent_to", [])
+    next_mandoub = get_next_mandoub(sent_to)
+
+    if not next_mandoub:
+        print("🚫 لا يوجد مناديب متاحين لإرسال الطلب.")
+        return
+
+    msg = f"""*طلب جديد - {list(order["orders"].keys())[0]}*
+رقم الطلب: {order_id}
+- {list(order["orders"].values())[0]}
+"""
+    send_message(next_mandoub, msg)
+
+    order["sent_to"].append(next_mandoub)
+    save_all_orders(orders_data)
+    print(f"✅ تم إرسال الطلب {order_id} إلى {next_mandoub}")
+
+# إنهاء الطلب
 def handle_finalize_order(user_id, message, user_orders):
     if message.strip() != "تم":
         return None
@@ -74,60 +103,40 @@ def handle_finalize_order(user_id, message, user_orders):
 
     save_order(order_id, user_id, orders)
 
-    # إرسال للمندوب
-    send_message("966503813344", f"📦 طلب جديد من {user_id}:\n\n{summary}")
+    # إرسال للمندوب الأول فقط (سيُستخدم لاحقًا لتكرار الإرسال عند عدم الرد)
+    send_order_to_next_mandoub(order_id)
 
-    # إرسال لكل محل حسب القسم
-    for service, order in orders.items():
-        vendor_msg = f"*طلب جديد - {service}*\nرقم الطلب: {order_id}\n- {order}"
-        send_message("966503813344", vendor_msg)
+    # إرسال للعميل
+    send_message(user_id, f"✅ تم إرسال طلبك بنجاح، رقم الطلب هو *{order_id}*")
 
-    # حذف الطلبات بعد الإرسال
     user_orders.pop(user_id, None)
+    return f"✅ تم إرسال طلبك بنجاح، رقم الطلب هو *{order_id}*"
 
-    # إرسال للعميل + رد ظاهر له
-    msg = f"✅ تم إرسال طلبك بنجاح، رقم الطلب هو *{order_id}*"
-    send_message(user_id, msg)
-    return msg
-
-# ✅ الدالة الرئيسية التي تُستخدم في app.py
+# الدالة الرئيسية المستخدمة في app.py
 def dispatch_message(user_id, message, user_states, user_orders):
-    # القائمة الرئيسية
     response = handle_main_menu(message)
-    if response:
-        return response
+    if response: return response
 
-    # الشكاوى
     response = handle_feedback(user_id, message, user_states)
-    if response:
-        return response
+    if response: return response
 
-    # عرض الطلبات
     response = handle_view_orders(user_id, message, user_orders)
-    if response:
-        return response
+    if response: return response
 
-    # إنهاء الطلبات
     response = handle_finalize_order(user_id, message, user_orders)
-    if response:
-        return response
+    if response: return response
 
-    # الخدمات الموحدة مثل صيدلية، بقالة، خضار
+    # الخدمات الموحدة
     for service_id, service_info in {
         "2": {"name": "الصيدلية", "stores": ["صيدلية الدواء", "صيدلية النهدي"]},
         "3": {"name": "البقالة", "stores": ["بقالة التميمي", "بقالة الخير"]},
         "4": {"name": "الخضار", "stores": ["خضار الطازج", "سوق المزارعين"]},
     }.items():
         response = handle_service(
-            user_id,
-            message,
-            user_states,
-            user_orders,
-            service_id,
-            service_info["name"],
-            service_info["stores"]
+            user_id, message, user_states, user_orders,
+            service_id, service_info["name"], service_info["stores"]
         )
         if response:
             return response
 
-    return None  # لا يوجد رد مفهوم
+    return None
