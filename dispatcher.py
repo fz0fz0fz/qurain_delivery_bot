@@ -3,10 +3,6 @@ from send_utils import send_message, generate_order_id
 from mandoubs import mandoubs
 from order_logger import save_order
 
-# حالات المستخدمين (في الذاكرة فقط)
-user_states = {}
-user_orders = {}
-
 services = {
     "2": {
         "name": "الصيدلية",
@@ -22,7 +18,7 @@ services = {
     }
 }
 
-def dispatch_message(user_id, message):
+def dispatch_message(user_id, message, user_states, user_orders):
     msg = message.strip()
 
     # عرض القائمة الرئيسية
@@ -37,7 +33,7 @@ def dispatch_message(user_id, message):
 
     # عرض الطلبات المحفوظة
     elif msg == "20":
-        return show_saved_orders(user_id)
+        return show_saved_orders(user_id, user_orders)
 
     # تأكيد إرسال الطلب النهائي
     elif msg == "تم":
@@ -59,7 +55,7 @@ def dispatch_message(user_id, message):
 
     return "🤖 عذرًا، لم أفهم رسالتك. أرسل (0) لعرض قائمة الخدمات."
 
-def show_saved_orders(user_id):
+def show_saved_orders(user_id, user_orders):
     if user_id not in user_orders or not user_orders[user_id]:
         return "📭 لا توجد طلبات محفوظة حالياً."
 
@@ -89,10 +85,10 @@ def handle_finalize_order(user_id, user_orders, user_states):
     for mandoub in mandoubs:
         send_message(mandoub, summary)
 
-    # إرسال رسالة خاصة لكل قسم (دون تكرار للمحلات)
+    # إرسال رسالة خاصة لكل قسم (بدون تكرار)
     for service, order in orders.items():
         vendor_msg = f"*📦 طلب جديد خاص بقسم {service}*\nرقم الطلب: {order_id}\n- {order}"
-        send_message("966503813344", vendor_msg)  # ← عدل الرقم لاحقًا حسب المحل المعني
+        send_message("966503813344", vendor_msg)  # ← عدل الرقم لاحقًا
 
     # حذف الطلبات بعد الإرسال
     del user_orders[user_id]
