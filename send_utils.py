@@ -3,30 +3,29 @@ import requests
 import json
 
 ORDERS_FILE = "orders_log.json"
-ORDER_PREFIX = "G"  # أو غيّر إلى "A" إذا أحببت
+ORDER_PREFIX = "G"  # غيّر إذا أحببت
+ORDER_COUNTER_FILE = "order_counter.txt"
 
 def get_last_order_number():
-    # يبحث عن آخر رقم طلب مستخدم في الملف
-    if not os.path.exists(ORDERS_FILE):
+    # يقرأ آخر رقم طلب من ملف منفصل (أو يرجع صفر إذا الملف غير موجود)
+    if not os.path.exists(ORDER_COUNTER_FILE):
         return 0
     try:
-        with open(ORDERS_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            orders = data.get("orders", {})
-            numbers = []
-            for order_id in orders:
-                if order_id.startswith(ORDER_PREFIX):
-                    try:
-                        numbers.append(int(order_id[len(ORDER_PREFIX):]))
-                    except ValueError:
-                        continue
-            return max(numbers) if numbers else 0
+        with open(ORDER_COUNTER_FILE, "r") as f:
+            return int(f.read().strip())
     except Exception:
         return 0
 
+def save_last_order_number(n):
+    # يحفظ الرقم الجديد في ملف منفصل
+    with open(ORDER_COUNTER_FILE, "w") as f:
+        f.write(str(n))
+
 def generate_order_id():
     last_number = get_last_order_number()
-    return f"{ORDER_PREFIX}{last_number + 1}"
+    new_number = last_number + 1
+    save_last_order_number(new_number)
+    return f"{ORDER_PREFIX}{new_number}"
 
 def send_message(phone, message):
     instance_id = os.getenv("ULTRA_INSTANCE_ID")
