@@ -1,6 +1,7 @@
 from send_utils import send_message, generate_order_id
 from order_logger import save_order
-from unified_service import handle_service
+from services.unified_service import handle_service
+
 
 # عرض القائمة الرئيسية عند إرسال "0" أو "." أو "٠" أو "خدمات"
 def handle_main_menu(message):
