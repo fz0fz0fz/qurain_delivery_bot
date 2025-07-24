@@ -5,7 +5,7 @@ from order_logger import save_order, load_orders, save_all_orders
 from unified_service import handle_service
 from mandoubs import get_next_mandoub
 
-# القائمة الرئيسية
+# عرض القائمة الرئيسية
 def handle_main_menu(message):
     if message.strip() in ["0", ".", "٠", "خدمات"]:
         return (
@@ -34,26 +34,24 @@ def handle_main_menu(message):
         )
     return None
 
-# الشكاوى
+# الشكاوى والاقتراحات
 def handle_feedback(user_id, message, user_states):
     if message.strip() == "100":
         user_states[user_id] = "awaiting_feedback"
         return "✉️ أرسل الآن رسالتك (اقتراح أو شكوى)"
-
     elif user_states.get(user_id) == "awaiting_feedback":
         user_states.pop(user_id, None)
         send_message("966503813344", f"💬 شكوى من {user_id}:\n{message}")
         return "✅ تم استلام رسالتك، شكرًا لك."
-
     return None
 
-# عرض الطلبات
+# عرض الطلبات السابقة
 def handle_view_orders(user_id, message, user_orders):
     if message.strip() == "20":
         orders = user_orders.get(user_id, {})
         if not orders:
             return "📭 لا توجد طلبات محفوظة حتى الآن."
-
+        
         response = "*🗂 طلباتك المحفوظة:*\n"
         for service, order in orders.items():
             response += f"\n📌 *{service}:*\n- {order}"
@@ -61,7 +59,7 @@ def handle_view_orders(user_id, message, user_orders):
         return response
     return None
 
-# إرسال الطلب لمندوب جديد
+# إرسال الطلب إلى المندوب المناسب
 def send_order_to_next_mandoub(order_id):
     orders_data = load_orders()
     order = orders_data.get("orders", {}).get(order_id)
@@ -77,17 +75,19 @@ def send_order_to_next_mandoub(order_id):
         print("🚫 لا يوجد مناديب متاحين لإرسال الطلب.")
         return
 
-    msg = f"""*طلب جديد - {list(order["orders"].keys())[0]}*
-رقم الطلب: {order_id}
-- {list(order["orders"].values())[0]}
-"""
+    # بناء الطلب الكامل لكل الأقسام
+    msg = f"*📦 طلب جديد - رقم الطلب: {order_id}*\n"
+    for service, service_order in order["orders"].items():
+        msg += f"\n📌 *{service}:*\n- {service_order}"
+
     send_message(next_mandoub, msg)
 
+    # تحديث سجل الطلب
     order["sent_to"].append(next_mandoub)
     save_all_orders(orders_data)
     print(f"✅ تم إرسال الطلب {order_id} إلى {next_mandoub}")
 
-# إنهاء الطلب
+# إنهاء الطلبات وإرسالها
 def handle_finalize_order(user_id, message, user_orders):
     if message.strip() != "تم":
         return None
@@ -103,28 +103,30 @@ def handle_finalize_order(user_id, message, user_orders):
 
     save_order(order_id, user_id, orders)
 
-    # إرسال للمندوب الأول فقط (سيُستخدم لاحقًا لتكرار الإرسال عند عدم الرد)
     send_order_to_next_mandoub(order_id)
 
-    # إرسال للعميل
-    send_message(user_id, f"✅ تم إرسال طلبك بنجاح، رقم الطلب هو *{order_id}*")
-
     user_orders.pop(user_id, None)
+
+    send_message(user_id, f"✅ تم إرسال طلبك بنجاح، رقم الطلب هو *{order_id}*")
     return f"✅ تم إرسال طلبك بنجاح، رقم الطلب هو *{order_id}*"
 
-# الدالة الرئيسية المستخدمة في app.py
+# ✅ الدالة الرئيسية
 def dispatch_message(user_id, message, user_states, user_orders):
     response = handle_main_menu(message)
-    if response: return response
+    if response:
+        return response
 
     response = handle_feedback(user_id, message, user_states)
-    if response: return response
+    if response:
+        return response
 
     response = handle_view_orders(user_id, message, user_orders)
-    if response: return response
+    if response:
+        return response
 
     response = handle_finalize_order(user_id, message, user_orders)
-    if response: return response
+    if response:
+        return response
 
     # الخدمات الموحدة
     for service_id, service_info in {
@@ -133,8 +135,13 @@ def dispatch_message(user_id, message, user_states, user_orders):
         "4": {"name": "الخضار", "stores": ["خضار الطازج", "سوق المزارعين"]},
     }.items():
         response = handle_service(
-            user_id, message, user_states, user_orders,
-            service_id, service_info["name"], service_info["stores"]
+            user_id,
+            message,
+            user_states,
+            user_orders,
+            service_id,
+            service_info["name"],
+            service_info["stores"]
         )
         if response:
             return response
