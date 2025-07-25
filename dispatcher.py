@@ -1,6 +1,7 @@
-from send_utils import send_message, generate_order_id
+from send_utils import send_message
 from services.unified_service import handle_service
 import sqlite3
+import re
 
 order_to_driver = {}   # order_id -> driver_id
 
@@ -38,6 +39,23 @@ def get_user_id_by_order_number(order_number):
     if row:
         return row[0]
     return None
+
+# ==== توليد رقم طلب متسلسل دائم ====
+def generate_order_id():
+    conn = sqlite3.connect('orders.db')
+    c = conn.cursor()
+    c.execute("SELECT order_number FROM orders WHERE order_number IS NOT NULL ORDER BY id DESC LIMIT 1")
+    row = c.fetchone()
+    conn.close()
+    if row and row[0]:
+        last_number = row[0]
+        prefix = ''.join([ch for ch in last_number if not ch.isdigit()]) or 'G'
+        number = ''.join([ch for ch in last_number if ch.isdigit()])
+        number = int(number) if number else 0
+        new_number = number + 1
+        return f"{prefix}{new_number:03d}"
+    else:
+        return "G001"
 
 # ==== القوائم والدعم ====
 def handle_main_menu(message):
@@ -118,8 +136,9 @@ def handle_finalize_order(user_id, message, user_orders):
 
 # ==== قبول المندوب ====
 def handle_driver_accept_order(message, driver_id, user_states):
-    if message.strip().startswith("قبول "):
-        order_id = message.strip().split(" ", 1)[1]
+    match = re.match(r"قبول\s*([A-Za-z0-9]+)", message.strip())
+    if match:
+        order_id = match.group(1)
         user_id = get_user_id_by_order_number(order_id)
         if user_id:
             order_to_driver[order_id] = driver_id
