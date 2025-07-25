@@ -180,7 +180,8 @@ def handle_user_location(user_id, message, user_states, latitude=None, longitude
         )
         row = c.fetchone()
         conn.close()
-        order_id = row[0] if row else None        if not order_id:
+        order_id = row[0] if row else None
+        if not order_id:
             send_message(user_id, "🚫 لم يتم العثور على رقم طلبك.")
             return "لا يوجد طلب بانتظار موقع."
         driver_id = get_driver_by_order(order_id)  # استرجاع من القاعدة
