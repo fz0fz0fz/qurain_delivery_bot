@@ -2,7 +2,6 @@ from send_utils import send_message, generate_order_id
 from services.unified_service import handle_service
 import sqlite3
 
-order_to_user = {}     # order_id -> user_id
 order_to_driver = {}   # order_id -> driver_id
 
 # ==== قواعد البيانات ====
@@ -22,6 +21,23 @@ def mark_orders_as_sent(order_ids):
     c.executemany("UPDATE orders SET sent = 1 WHERE id = ?", [(oid,) for oid in order_ids])
     conn.commit()
     conn.close()
+
+def add_order_number_to_orders(order_number, order_ids):
+    conn = sqlite3.connect('orders.db')
+    c = conn.cursor()
+    c.executemany("UPDATE orders SET order_number = ? WHERE id = ?", [(order_number, oid) for oid in order_ids])
+    conn.commit()
+    conn.close()
+
+def get_user_id_by_order_number(order_number):
+    conn = sqlite3.connect('orders.db')
+    c = conn.cursor()
+    c.execute("SELECT user_id FROM orders WHERE order_number = ? LIMIT 1", (order_number,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return row[0]
+    return None
 
 # ==== القوائم والدعم ====
 def handle_main_menu(message):
@@ -87,6 +103,7 @@ def handle_finalize_order(user_id, message, user_orders):
     for oid, service, order, created_at in orders:
         summary += f"\n📦 *{service}:*\n- {order}\n🕒 {created_at}"
         ids_to_mark.append(oid)
+    add_order_number_to_orders(order_id, ids_to_mark)
     try:
         from mandoubs import mandoubs
         for m in mandoubs:
@@ -103,11 +120,16 @@ def handle_finalize_order(user_id, message, user_orders):
 def handle_driver_accept_order(message, driver_id, user_states):
     if message.strip().startswith("قبول "):
         order_id = message.strip().split(" ", 1)[1]
-        user_id = order_to_user.get(order_id)
+        user_id = get_user_id_by_order_number(order_id)
         if user_id:
             order_to_driver[order_id] = driver_id
             user_states[user_id] = "awaiting_location"
-            send_message(user_id, f"🚗 تم قبول طلبك (رقم {order_id}) من قبل المندوب.\n\n📍 الرجاء الضغط على زر (📎 → الموقع → إرسال موقعك الحالي).\n❗️لا ترسل صورة أو رابط.")
+            send_message(
+                user_id,
+                f"🚗 تم قبول طلبك (رقم {order_id}) من قبل المندوب.\n\n"
+                "📍 الرجاء الضغط على زر (📎 → الموقع → إرسال موقعك الحالي).\n"
+                "❗️لا ترسل صورة أو رابط."
+            )
             send_message(driver_id, f"✅ تم تسجيل قبولك للطلب رقم {order_id}. انتظر موقع العميل.")
             return "تمت معالجة قبول الطلب."
         else:
@@ -118,7 +140,15 @@ def handle_driver_accept_order(message, driver_id, user_states):
 # ==== الموقع ====
 def handle_user_location(user_id, message, user_states, latitude=None, longitude=None):
     if user_states.get(user_id) == "awaiting_location":
-        order_id = next((oid for oid, uid in order_to_user.items() if uid == user_id), None)
+        conn = sqlite3.connect('orders.db')
+        c = conn.cursor()
+        c.execute(
+            "SELECT order_number FROM orders WHERE user_id = ? AND sent = 1 AND order_number IS NOT NULL ORDER BY created_at DESC LIMIT 1",
+            (user_id,)
+        )
+        row = c.fetchone()
+        conn.close()
+        order_id = row[0] if row else None
         if not order_id:
             send_message(user_id, "🚫 لم يتم العثور على رقم طلبك.")
             return "لا يوجد طلب بانتظار موقع."
