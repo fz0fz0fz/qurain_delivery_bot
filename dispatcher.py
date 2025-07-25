@@ -3,7 +3,25 @@ from services.unified_service import handle_service
 import sqlite3
 import re
 
-order_to_driver = {}   # order_id -> driver_id
+# استورد دوال الربط إن وضعتها في db_utils.py:
+# from db_utils import save_order_driver, get_driver_by_order
+
+def save_order_driver(order_number, driver_id):
+    conn = sqlite3.connect('orders.db')
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO order_drivers (order_number, driver_id) VALUES (?, ?)", (order_number, driver_id))
+    conn.commit()
+    conn.close()
+
+def get_driver_by_order(order_number):
+    conn = sqlite3.connect('orders.db')
+    c = conn.cursor()
+    c.execute("SELECT driver_id FROM order_drivers WHERE order_number = ? LIMIT 1", (order_number,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return row[0]
+    return None
 
 # ==== قواعد البيانات ====
 def get_unsent_orders_from_db(user_id):
@@ -40,7 +58,6 @@ def get_user_id_by_order_number(order_number):
         return row[0]
     return None
 
-# ==== توليد رقم طلب متسلسل دائم ====
 def generate_order_id():
     conn = sqlite3.connect('orders.db')
     c = conn.cursor()
@@ -57,7 +74,6 @@ def generate_order_id():
     else:
         return "G001"
 
-# ==== القوائم والدعم ====
 def handle_main_menu(message):
     if message.strip() in ["0", ".", "٠", "خدمات"]:
         return (
@@ -96,7 +112,6 @@ def handle_feedback(user_id, message, user_states):
         return "✅ تم استلام رسالتك، شكرًا لك."
     return None
 
-# ==== الطلبات ====
 def handle_view_orders(user_id, message, user_orders):
     if message.strip() == "20":
         orders = get_unsent_orders_from_db(user_id)
@@ -134,14 +149,13 @@ def handle_finalize_order(user_id, message, user_orders):
     mark_orders_as_sent(ids_to_mark)
     return "✅ تم إرسال طلباتك للمناديب بنجاح!"
 
-# ==== قبول المندوب ====
 def handle_driver_accept_order(message, driver_id, user_states):
     match = re.match(r"قبول\s*([A-Za-z0-9]+)", message.strip())
     if match:
         order_id = match.group(1)
         user_id = get_user_id_by_order_number(order_id)
         if user_id:
-            order_to_driver[order_id] = driver_id
+            save_order_driver(order_id, driver_id)  # حفظ الربط دائمًا
             user_states[user_id] = "awaiting_location"
             send_message(
                 user_id,
@@ -156,7 +170,6 @@ def handle_driver_accept_order(message, driver_id, user_states):
             return "لم يتم العثور على الطلب."
     return None
 
-# ==== الموقع ====
 def handle_user_location(user_id, message, user_states, latitude=None, longitude=None):
     if user_states.get(user_id) == "awaiting_location":
         conn = sqlite3.connect('orders.db')
@@ -167,11 +180,10 @@ def handle_user_location(user_id, message, user_states, latitude=None, longitude
         )
         row = c.fetchone()
         conn.close()
-        order_id = row[0] if row else None
-        if not order_id:
+        order_id = row[0] if row else None        if not order_id:
             send_message(user_id, "🚫 لم يتم العثور على رقم طلبك.")
             return "لا يوجد طلب بانتظار موقع."
-        driver_id = order_to_driver.get(order_id)
+        driver_id = get_driver_by_order(order_id)  # استرجاع من القاعدة
         if not driver_id:
             send_message(user_id, "🚫 لم يتم العثور على المندوب المرتبط بالطلب.")
             return "لا يوجد مندوب مرتبط بالطلب."
@@ -186,7 +198,6 @@ def handle_user_location(user_id, message, user_states, latitude=None, longitude
             return "يرجى إرسال الموقع الصحيح"
     return None
 
-# ==== التوجيه ====
 def dispatch_message(user_id, message, user_states, user_orders, driver_id=None, latitude=None, longitude=None):
     if message.strip() in ["99", "٩٩"]:
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
