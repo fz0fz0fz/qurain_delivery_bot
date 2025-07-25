@@ -1,6 +1,6 @@
 from send_utils import send_message, generate_order_id
-from order_logger import save_order
 from services.unified_service import handle_service
+import sqlite3
 
 order_to_user = {}     # order_id -> user_id
 order_to_driver = {}   # order_id -> driver_id
@@ -43,17 +43,27 @@ def handle_feedback(user_id, message, user_states):
         return "✅ تم استلام رسالتك، شكرًا لك."
     return None
 
+def get_orders_from_db(user_id):
+    conn = sqlite3.connect('orders.db')
+    c = conn.cursor()
+    c.execute("SELECT service_name, order_text, created_at FROM orders WHERE user_id = ? ORDER BY created_at DESC", (user_id,))
+    orders = c.fetchall()
+    conn.close()
+    return orders
+
 def handle_view_orders(user_id, message, user_orders):
     if message.strip() == "20":
-        orders = user_orders.get(user_id, {})
+        orders = get_orders_from_db(user_id)
         if not orders:
             return "📭 لا توجد طلبات محفوظة حتى الآن."
         response = "*🗂 طلباتك المحفوظة:*\n"
-        for service, order in orders.items():
-            response += f"\n📌 *{service}:*\n- {order}"
+        for service, order, created_at in orders:
+            response += f"\n📌 *{service}:*\n- {order}\n🕒 {created_at}"
         response += "\n\nعند الانتهاء، أرسل كلمة *تم* لإرسال الطلب."
         return response
     return None
+
+# باقي الكود كما هو
 
 def handle_finalize_order(user_id, message, user_orders):
     if message.strip() != "تم":
