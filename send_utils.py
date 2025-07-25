@@ -1,22 +1,11 @@
+import os
 import time
+import requests
+import json
 
-ORDER_PREFIX = "G"
-
-def send_message(chat_id, text):
-    """
-    ترسل رسالة للمستخدم عبر البوت.
-    يمكنك تعديل الكود حسب طريقة الإرسال الخاصة بك.
-    """
-    # مثال:
-    # bot.send_message(chat_id, text)
-    pass
+ORDER_PREFIX = "G"  # غيّر إذا أحببت
 
 def generate_order_id():
-    """
-    توليد رقم طلب مكوّن من حرف و3 أرقام فقط (مثل: G001)
-    يبدأ العد من جديد كل يوم.
-    """
-    # نحصل على تاريخ اليوم بصيغة يوم-شهر-سنة
     day = time.strftime("%d%m%y")
     counter_file = f"order_counter_{day}.txt"
     try:
@@ -24,12 +13,29 @@ def generate_order_id():
             last_number = int(f.read().strip())
     except:
         last_number = 0
-    new_number = (last_number + 1) % 1000  # من 1 إلى 999 فقط
+    new_number = (last_number + 1) % 1000
     with open(counter_file, "w") as f:
         f.write(str(new_number))
     return f"{ORDER_PREFIX}{new_number:03d}"
 
-# مثال على الاستخدام
-if __name__ == "__main__":
-    order_id = generate_order_id()
-    print(f"رقم الطلب الجديد: {order_id}")
+def send_message(phone, message):
+    instance_id = os.getenv("ULTRA_INSTANCE_ID")
+    token = os.getenv("ULTRA_TOKEN")
+    if not instance_id or not token:
+        raise EnvironmentError("ULTRA_INSTANCE_ID and ULTRA_TOKEN must be set in environment variables.")
+
+    url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
+    payload = {
+        "to": phone,
+        "body": message
+    }
+    headers = {
+        "Content-Type": "application/json"
+    }
+    try:
+        response = requests.post(url, json=payload, headers=headers, params={"token": token}, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        print(f"Error sending message: {e}")
+        return {"error": str(e)}
