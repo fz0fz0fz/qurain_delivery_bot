@@ -70,9 +70,9 @@ def handle_finalize_order(user_id, message, user_orders):
     try:
         from mandoubs import mandoubs
         for m in mandoubs:
-            send_message(m["id"], f"📦 طلب جديد من {user_id}:\n\n{summary}\n\nللقبول أرسل: قبول {order_id}")
+            send_message(m["id"], f"📦 طلب جديد من {user_id.replace('@c.us', '')}:\n\n{summary}\n\nللقبول أرسل: قبول {order_id}")
     except ImportError:
-        send_message("966503813344", f"📦 طلب جديد من {user_id}:\n\n{summary}\n\nللقبول أرسل: قبول {order_id}")
+        send_message("966503813344", f"📦 طلب جديد من {user_id.replace('@c.us', '')}:\n\n{summary}\n\nللقبول أرسل: قبول {order_id}")
     for service, order in orders.items():
         vendor_msg = f"*طلب جديد - {service}*\nرقم الطلب: {order_id}\n- {order}"
         send_message("966503813344", vendor_msg)
