@@ -1,4 +1,6 @@
 import os
+from db_utils import init_db
+init_db()
 from flask import Flask, request
 from dispatcher import dispatch_message
 from send_utils import send_message
