@@ -5,6 +5,25 @@ import sqlite3
 order_to_user = {}     # order_id -> user_id
 order_to_driver = {}   # order_id -> driver_id
 
+# ==== قواعد البيانات ====
+def get_unsent_orders_from_db(user_id):
+    conn = sqlite3.connect('orders.db')
+    c = conn.cursor()
+    c.execute("SELECT id, service_name, order_text, created_at FROM orders WHERE user_id = ? AND sent = 0 ORDER BY created_at ASC", (user_id,))
+    orders = c.fetchall()
+    conn.close()
+    return orders
+
+def mark_orders_as_sent(order_ids):
+    if not order_ids:
+        return
+    conn = sqlite3.connect('orders.db')
+    c = conn.cursor()
+    c.executemany("UPDATE orders SET sent = 1 WHERE id = ?", [(oid,) for oid in order_ids])
+    conn.commit()
+    conn.close()
+
+# ==== القوائم والدعم ====
 def handle_main_menu(message):
     if message.strip() in ["0", ".", "٠", "خدمات"]:
         return (
@@ -43,54 +62,44 @@ def handle_feedback(user_id, message, user_states):
         return "✅ تم استلام رسالتك، شكرًا لك."
     return None
 
-def get_orders_from_db(user_id):
-    conn = sqlite3.connect('orders.db')
-    c = conn.cursor()
-    c.execute("SELECT service_name, order_text, created_at FROM orders WHERE user_id = ? ORDER BY created_at DESC", (user_id,))
-    orders = c.fetchall()
-    conn.close()
-    return orders
-
+# ==== الطلبات ====
 def handle_view_orders(user_id, message, user_orders):
     if message.strip() == "20":
-        orders = get_orders_from_db(user_id)
+        orders = get_unsent_orders_from_db(user_id)
         if not orders:
             return "📭 لا توجد طلبات محفوظة حتى الآن."
         response = "*🗂 طلباتك المحفوظة:*\n"
-        for service, order, created_at in orders:
+        for _, service, order, created_at in orders:
             response += f"\n📌 *{service}:*\n- {order}\n🕒 {created_at}"
         response += "\n\nعند الانتهاء، أرسل كلمة *تم* لإرسال الطلب."
         return response
     return None
 
-# باقي الكود كما هو
-
 def handle_finalize_order(user_id, message, user_orders):
     if message.strip() != "تم":
         return None
-    orders = user_orders.get(user_id)
+    orders = get_unsent_orders_from_db(user_id)
     if not orders:
         return "❗️لا توجد طلبات لإرسالها."
     order_id = generate_order_id()
     summary = f"*🆔 رقم الطلب: {order_id}*\n"
-    for service, order in orders.items():
-        summary += f"\n📦 *{service}:*\n- {order}"
-    save_order(order_id, user_id, orders)
-    order_to_user[order_id] = user_id
+    ids_to_mark = []
+    for oid, service, order, created_at in orders:
+        summary += f"\n📦 *{service}:*\n- {order}\n🕒 {created_at}"
+        ids_to_mark.append(oid)
     try:
         from mandoubs import mandoubs
         for m in mandoubs:
             send_message(m["id"], f"📦 طلب جديد من {user_id.replace('@c.us', '')}:\n\n{summary}\n\nللقبول أرسل: قبول {order_id}")
     except ImportError:
         send_message("966503813344", f"📦 طلب جديد من {user_id.replace('@c.us', '')}:\n\n{summary}\n\nللقبول أرسل: قبول {order_id}")
-    for service, order in orders.items():
+    for _, service, order, _ in orders:
         vendor_msg = f"*طلب جديد - {service}*\nرقم الطلب: {order_id}\n- {order}"
         send_message("966503813344", vendor_msg)
-    user_orders.pop(user_id, None)
-    msg = f"✅ تم تسجيل طلبك برقم *{order_id}*، بانتظار قبول مندوب. سيتم التواصل معك قريبًا."
-    send_message(user_id, msg)
-    return None
+    mark_orders_as_sent(ids_to_mark)
+    return "✅ تم إرسال طلباتك للمناديب بنجاح!"
 
+# ==== قبول المندوب ====
 def handle_driver_accept_order(message, driver_id, user_states):
     if message.strip().startswith("قبول "):
         order_id = message.strip().split(" ", 1)[1]
@@ -98,7 +107,7 @@ def handle_driver_accept_order(message, driver_id, user_states):
         if user_id:
             order_to_driver[order_id] = driver_id
             user_states[user_id] = "awaiting_location"
-            send_message(user_id, f"🚗 تم قبول طلبك (رقم {order_id}) من قبل المندوب. الرجاء إرسال موقعك الآن.")
+            send_message(user_id, f"🚗 تم قبول طلبك (رقم {order_id}) من قبل المندوب.\n\n📍 الرجاء الضغط على زر (📎 → الموقع → إرسال موقعك الحالي).\n❗️لا ترسل صورة أو رابط.")
             send_message(driver_id, f"✅ تم تسجيل قبولك للطلب رقم {order_id}. انتظر موقع العميل.")
             return "تمت معالجة قبول الطلب."
         else:
@@ -106,6 +115,7 @@ def handle_driver_accept_order(message, driver_id, user_states):
             return "لم يتم العثور على الطلب."
     return None
 
+# ==== الموقع ====
 def handle_user_location(user_id, message, user_states, latitude=None, longitude=None):
     if user_states.get(user_id) == "awaiting_location":
         order_id = next((oid for oid, uid in order_to_user.items() if uid == user_id), None)
@@ -116,7 +126,6 @@ def handle_user_location(user_id, message, user_states, latitude=None, longitude
         if not driver_id:
             send_message(user_id, "🚫 لم يتم العثور على المندوب المرتبط بالطلب.")
             return "لا يوجد مندوب مرتبط بالطلب."
-        # إذا أرسل الموقع الصحيح (إحداثيات)
         if latitude and longitude:
             location_url = f"https://maps.google.com/?q={latitude},{longitude}"
             send_message(driver_id, f"📍 موقع العميل للطلب رقم {order_id}: {location_url}")
@@ -128,10 +137,9 @@ def handle_user_location(user_id, message, user_states, latitude=None, longitude
             return "يرجى إرسال الموقع الصحيح"
     return None
 
+# ==== التوجيه ====
 def dispatch_message(user_id, message, user_states, user_orders, driver_id=None, latitude=None, longitude=None):
-    # دعم استقبال "99" أو "٩٩" خارج الخدمة
     if message.strip() in ["99", "٩٩"]:
-        # تحقق إذا المستخدم ليس في حالة انتظار خدمة
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
             return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
     response = handle_main_menu(message)
@@ -145,7 +153,6 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     if driver_id:
         response = handle_driver_accept_order(message, driver_id, user_states)
         if response: return response
-    # تم تمرير الإحداثيات هنا
     response = handle_user_location(user_id, message, user_states, latitude=latitude, longitude=longitude)
     if response: return response
     for service_id, service_info in {
