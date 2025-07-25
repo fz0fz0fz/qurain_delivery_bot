@@ -1,3 +1,16 @@
+import sqlite3
+from datetime import datetime
+
+def save_order(user_id, service_name, order_text):
+    conn = sqlite3.connect('orders.db')
+    c = conn.cursor()
+    c.execute(
+        'INSERT INTO orders (user_id, service_name, order_text, created_at) VALUES (?, ?, ?, ?)',
+        (user_id, service_name, order_text, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    )
+    conn.commit()
+    conn.close()
+
 def handle_service(user_id, message, user_states, user_orders, service_id, service_name, stores_list):
     msg = message.strip()
 
@@ -17,11 +30,8 @@ def handle_service(user_id, message, user_states, user_orders, service_id, servi
 
     # المستخدم أرسل الطلب فعليًا
     elif user_states.get(user_id) == f"waiting_input_{service_name}":
-        if user_id not in user_orders:
-            user_orders[user_id] = {}
-        if service_name not in user_orders[user_id]:
-            user_orders[user_id][service_name] = []
-        user_orders[user_id][service_name].append(msg)
+        # حفظ في قاعدة البيانات فقط
+        save_order(user_id, service_name, msg)
         user_states[user_id] = f"awaiting_order_{service_name}"  # إعادة تعيين الحالة
 
         return f"✅ تم حفظ طلبك: {msg}\n\nأرسل 99 لإضافة طلب آخر، أو 0 للرجوع للقائمة، أو 20 لمشاهدة طلباتك."
