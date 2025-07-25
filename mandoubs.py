@@ -1,8 +1,8 @@
 # mandoubs.py
 
 mandoubs = [
-    {"id": "966503813344@c.us", "name": "مندوب 1", "available": True},
-    {"id": "966507005272@c.us", "name": "مندوب 2", "available": True}
+    {"id": "966503813344", "name": "مندوب 1", "available": True},
+    {"id": "966507005272", "name": "مندوب 2", "available": True}
 ]
 
 def get_next_mandoub(excluded_ids):
