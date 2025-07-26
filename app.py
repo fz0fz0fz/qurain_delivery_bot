@@ -1,3 +1,5 @@
+from init_db import init_db
+init_db()
 from flask import Flask, request
 from dispatcher import dispatch_message
 
