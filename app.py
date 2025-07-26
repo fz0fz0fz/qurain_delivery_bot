@@ -37,17 +37,25 @@ def webhook():
 
     user_id = payload.get("from")
     message = payload.get("body")
-    latitude = payload.get("latitude")
-    longitude = payload.get("longitude")
+    driver_id = None
+    latitude = None
+    longitude = None
+
+    # إذا كانت الرسالة من نوع "location" استخرج الإحداثيات من مفتاح location
+    if payload.get("type") == "location":
+        location = payload.get("location", {})
+        latitude = location.get("latitude")
+        longitude = location.get("longitude")
+    else:
+        latitude = payload.get("latitude")
+        longitude = payload.get("longitude")
 
     if not user_id or not message:
         return "❌ Missing fields", 400
 
-    driver_id = None
     if "قبول" in message:
         driver_id = user_id
 
-    # معالجة الرسالة عبر البوت
     response = dispatch_message(
         user_id=user_id,
         message=message,
@@ -58,7 +66,6 @@ def webhook():
         longitude=longitude
     )
 
-    # إذا كان هناك رد نصي، أرسله للمستخدم عبر واتساب
     if response:
         phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
         send_message(phone, response)
