@@ -1,4 +1,3 @@
-
 import os
 import time
 import requests
@@ -36,6 +35,7 @@ def send_message(phone, message):
     try:
         response = requests.post(url, json=payload, headers=headers, params={"token": token}, timeout=10)
         response.raise_for_status()
+        print("UltraMsg Response:", response.text)  # هذا السطر يطبع نتيجة الـ API دائماً
         return response.json()
     except Exception as e:
         print(f"Error sending message: {e}")
