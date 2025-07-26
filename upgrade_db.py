@@ -1,4 +1,8 @@
 import sqlite3
+import logging
+
+# إعداد التسجيل لعرض الرسائل في Render
+logging.basicConfig(level=logging.INFO)
 
 conn = sqlite3.connect('orders.db')
 c = conn.cursor()
@@ -6,18 +10,18 @@ c = conn.cursor()
 # إضافة عمود sent إذا لم يكن موجودًا
 try:
     c.execute("ALTER TABLE orders ADD COLUMN sent INTEGER DEFAULT 0")
-    print("تمت إضافة العمود sent بنجاح!")
+    logging.info("✅ تمت إضافة العمود sent بنجاح!")
 except sqlite3.OperationalError:
-    print("العمود sent موجود بالفعل.")
+    logging.info("ℹ️ العمود sent موجود بالفعل.")
 
 # إضافة عمود order_number إذا لم يكن موجودًا
 try:
     c.execute("ALTER TABLE orders ADD COLUMN order_number TEXT")
-    print("تمت إضافة العمود order_number بنجاح!")
+    logging.info("✅ تمت إضافة العمود order_number بنجاح!")
 except sqlite3.OperationalError:
-    print("العمود order_number موجود بالفعل.")
+    logging.info("ℹ️ العمود order_number موجود بالفعل.")
 
-# إضافة جدول ربط الطلب بالمندوب إذا لم يكن موجودًا
+# إنشاء جدول ربط الطلب بالمندوب
 try:
     c.execute("""
         CREATE TABLE IF NOT EXISTS order_drivers (
@@ -25,9 +29,9 @@ try:
             driver_id TEXT NOT NULL
         )
     """)
-    print("تم إنشاء جدول order_drivers بنجاح!")
+    logging.info("✅ تم إنشاء جدول order_drivers بنجاح!")
 except sqlite3.OperationalError as e:
-    print("يوجد خطأ في إنشاء جدول order_drivers:", e)
+    logging.error(f"❌ خطأ في إنشاء جدول order_drivers: {e}")
 
 conn.commit()
-conn.close() 
+conn.close()
