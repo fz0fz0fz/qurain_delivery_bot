@@ -1,4 +1,3 @@
-import upgrade_db
 import os
 from db_utils import init_db
 init_db()
@@ -39,4 +38,5 @@ def webhook():
     return "OK", 200
 
 if __name__ == "__main__":
+    import upgrade_db
     app.run(debug=True)
