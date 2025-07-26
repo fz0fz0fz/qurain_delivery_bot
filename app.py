@@ -1,3 +1,4 @@
+import upgrade_db
 import os
 from db_utils import init_db
 init_db()
