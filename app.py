@@ -30,14 +30,16 @@ def index():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
+    print("بيانات الواتساب الواردة:", data)  # للطباعة والتأكد من الهيكل
+
     if not data:
         return "❌ No data received", 400
 
-    payload = data.get("data", {})
-    user_id = payload.get("from")
-    message = payload.get("body")
-    latitude = payload.get("latitude")
-    longitude = payload.get("longitude")
+    # استخراج القيم مباشرة من data
+    user_id = data.get("from")
+    message = data.get("body")
+    latitude = data.get("latitude")
+    longitude = data.get("longitude")
 
     if not user_id or not message:
         return "❌ Missing fields", 400
