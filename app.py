@@ -14,6 +14,7 @@ print_tables()
 
 from flask import Flask, request
 from dispatcher import dispatch_message
+from send_utils import send_message  # تأكد من الاستيراد هنا
 
 app = Flask(__name__)
 
@@ -27,12 +28,12 @@ def index():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
-    print("بيانات الواتساب الواردة:", data)  # للطباعة والتأكد من الهيكل
+    print("بيانات الواتساب الواردة:", data)
 
     if not data:
         return "❌ No data received", 400
 
-    payload = data.get("data", {})  # التعديل هنا عشان UltraMsg يرسل البيانات هنا
+    payload = data.get("data", {})
 
     user_id = payload.get("from")
     message = payload.get("body")
@@ -46,6 +47,7 @@ def webhook():
     if "قبول" in message:
         driver_id = user_id
 
+    # معالجة الرسالة عبر البوت
     response = dispatch_message(
         user_id=user_id,
         message=message,
@@ -55,5 +57,10 @@ def webhook():
         latitude=latitude,
         longitude=longitude
     )
+
+    # إذا كان هناك رد نصي، أرسله للمستخدم عبر واتساب
+    if response:
+        phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
+        send_message(phone, response)
 
     return "✅ OK", 200
