@@ -2,6 +2,28 @@ from send_utils import send_message
 from services.unified_service import handle_service
 import sqlite3
 import re
+import os  # لإدارة ملف رقم الطلب
+
+# ========== إدارة رقم الطلب من ملف نصي ==========
+ORDER_FILE = "last_order.txt"
+
+def get_last_order_number():
+    if os.path.exists(ORDER_FILE):
+        with open(ORDER_FILE, "r") as f:
+            try:
+                return int(f.read().strip())
+            except ValueError:
+                return 0
+    else:
+        return 0
+
+def generate_order_id():
+    last_num = get_last_order_number()
+    new_num = last_num + 1
+    order_id = f"G{new_num:03d}"
+    with open(ORDER_FILE, "w") as f:
+        f.write(str(new_num))
+    return order_id
 
 # استورد دوال الربط إن وضعتها في db_utils.py:
 # from db_utils import save_order_driver, get_driver_by_order
@@ -58,21 +80,7 @@ def get_user_id_by_order_number(order_number):
         return row[0]
     return None
 
-def generate_order_id():
-    conn = sqlite3.connect('orders.db')
-    c = conn.cursor()
-    c.execute("SELECT order_number FROM orders WHERE order_number IS NOT NULL ORDER BY id DESC LIMIT 1")
-    row = c.fetchone()
-    conn.close()
-    if row and row[0]:
-        last_number = row[0]
-        prefix = ''.join([ch for ch in last_number if not ch.isdigit()]) or 'G'
-        number = ''.join([ch for ch in last_number if ch.isdigit()])
-        number = int(number) if number else 0
-        new_number = number + 1
-        return f"{prefix}{new_number:03d}"
-    else:
-        return "G001"
+# تم حذف الدالة القديمة generate_order_id التي تعتمد على قاعدة البيانات!
 
 def handle_main_menu(message):
     if message.strip() in ["0", ".", "٠", "خدمات"]:
@@ -82,6 +90,8 @@ def handle_main_menu(message):
             "2️⃣ صيدلية 💊\n"
             "3️⃣ بقالة 🥤\n"
             "4️⃣ خضار 🥬\n"
+        )
+# ... بقية الكود كما هو
             "5️⃣ رحلات ⛺️\n"
             "6️⃣ حلا 🍮\n"
             "7️⃣ أسر منتجة 🥧\n"
