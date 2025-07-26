@@ -1,5 +1,19 @@
 from init_db import init_db
 init_db()
+
+# ✅ كود طباعة الجداول (احذفه بعد التأكد)
+import sqlite3
+DB_PATH = "orders.db"
+def print_tables():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = c.fetchall()
+    conn.close()
+    print("📦 الجداول الموجودة:", [t[0] for t in tables])
+print_tables()
+
+# باقي الاستيرادات
 from flask import Flask, request
 from dispatcher import dispatch_message
 
