@@ -1,5 +1,19 @@
 # mandoubs.py
 
+
+# إضافة جدول ربط الطلب بالمندوب إذا لم يكن موجودًا
+try:
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS order_drivers (
+            order_number TEXT PRIMARY KEY,
+            driver_id TEXT NOT NULL
+        )
+    """)
+    print("تم إنشاء جدول order_drivers بنجاح!")
+except sqlite3.OperationalError as e:
+    print("يوجد خطأ في إنشاء جدول order_drivers:", e)
+
+
 mandoubs = [
     {"id": "966503813344", "name": "مندوب 1", "available": True},
     {"id": "966507005272", "name": "مندوب 2", "available": True}
