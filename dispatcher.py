@@ -3,28 +3,6 @@ from send_utils import send_message
 from services.unified_service import handle_service
 import sqlite3
 import re
-import os  # لإدارة ملف رقم الطلب
-
-# ========== إدارة رقم الطلب من ملف نصي ==========
-ORDER_FILE = "last_order.txt"
-
-def get_last_order_number():
-    if os.path.exists(ORDER_FILE):
-        with open(ORDER_FILE, "r") as f:
-            try:
-                return int(f.read().strip())
-            except ValueError:
-                return 0
-    else:
-        return 0
-
-def generate_order_id_pg():
-    last_num = get_last_order_number()
-    new_num = last_num + 1
-    order_id = f"G{new_num:03d}"
-    with open(ORDER_FILE, "w") as f:
-        f.write(str(new_num))
-    return order_id
 
 # استورد دوال الربط إن وضعتها في db_utils.py:
 # from db_utils import save_order_driver, get_driver_by_order
@@ -80,8 +58,6 @@ def get_user_id_by_order_number(order_number):
     if row:
         return row[0]
     return None
-
-# تم حذف الدالة القديمة generate_order_id التي تعتمد على قاعدة البيانات!
 
 def handle_main_menu(message):
     if message.strip() in ["0", ".", "٠", "خدمات"]:
