@@ -1,30 +1,5 @@
-import sqlite3
 import os
 import requests
-
-ORDER_PREFIX = "G"  # يمكنك تغيير البادئة إذا أحببت
-DB_PATH = "orders.db"
-
-def generate_order_id():
-    """
-    ينشئ رقم طلب متسلسل يبدأ بالحرف G ويستمر مع كل طلب جديد حتى بعد إعادة تشغيل السيرفر.
-    يعتمد على آخر رقم طلب مخزن في قاعدة البيانات.
-    """
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT order_number FROM orders WHERE order_number IS NOT NULL ORDER BY id DESC LIMIT 1")
-    row = c.fetchone()
-    conn.close()
-    if row and row[0]:
-        last_number = row[0]
-        # يستخرج الرقم الرقمي من آخر رقم طلب
-        prefix = ''.join([ch for ch in last_number if not ch.isdigit()]) or ORDER_PREFIX
-        number = ''.join([ch for ch in last_number if ch.isdigit()])
-        number = int(number) if number else 0
-        new_number = number + 1
-        return f"{prefix}{new_number:03d}"
-    else:
-        return f"{ORDER_PREFIX}001"
 
 def send_message(phone, message):
     """
