@@ -18,7 +18,7 @@ def get_last_order_number():
     else:
         return 0
 
-def generate_order_id():
+def generate_order_id_pg():
     last_num = get_last_order_number()
     new_num = last_num + 1
     order_id = f"G{new_num:03d}"
@@ -139,7 +139,7 @@ def handle_finalize_order(user_id, message, user_orders):
     orders = get_unsent_orders_from_db(user_id)
     if not orders:
         return "❗️لا توجد طلبات لإرسالها."
-    order_id = generate_order_id()
+    order_id = generate_order_id_pg()
     summary = f"*🆔 رقم الطلب: {order_id}*\n"
     ids_to_mark = []
     for oid, service, order, created_at in orders:
