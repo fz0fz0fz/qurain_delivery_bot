@@ -16,10 +16,10 @@ def send_menu_order():
     if not phone or not items:
         return "❗ يجب إدخال رقم الهاتف واختيار منتج واحد على الأقل"
 
-    # الرسالة واضحة للتجربة
+    # الرسالة للتجربة، مع وسم واضح
     text = f"📦 [منيو HTML]\n- " + "\n- ".join(items)
 
-    # بيانات UltraMsg (للتجربة فقط)
+    # بيانات UltraMsg (مكشوفة للتجربة فقط)
     ultra_token = "9dxefhg0k4l3b7ak"
     instance_id = "instance130542"
 
@@ -32,9 +32,15 @@ def send_menu_order():
 
     try:
         response = requests.post(url, json=payload)
+
+        # 🪵 طباعة للتتبع في لوق Render
+        print("📨 تم إرسال الطلب إلى UltraMsg")
+        print("📤 UltraMsg response:", response.status_code, response.text)
+
         if response.status_code == 200:
             return "✅ تم إرسال الطلب إلى واتساب!"
         else:
             return f"❌ فشل في الإرسال: {response.text}"
     except Exception as e:
+        print("❌ خطأ في الاتصال بـ UltraMsg:", str(e))
         return f"❌ خطأ أثناء الاتصال بـ UltraMsg: {str(e)}"
