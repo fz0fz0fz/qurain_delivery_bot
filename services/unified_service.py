@@ -12,7 +12,6 @@ def save_order(user_id, service_name, order_text):
     conn.commit()
     conn.close()
 
-# دالة لجلب وعرض الطلبات بشكل مجمع
 def get_orders_for_user(user_id):
     conn = sqlite3.connect('orders.db')
     c = conn.cursor()
@@ -31,27 +30,40 @@ def get_orders_for_user(user_id):
     response += "\nعند الانتهاء، أرسل كلمة *تم* لإرسال الطلب."
     return response
 
-def handle_service(user_id, message, user_states, user_orders, service_id, service_name, stores_list, allowed_service_ids):
+def handle_service(
+    user_id,
+    message,
+    user_states,
+    user_orders,
+    service_id,
+    service_name,
+    stores_list,
+    allowed_service_ids,
+    main_menu_text=None  # القائمة الرئيسية يتم تمريرها من dispatcher.py
+):
     msg = message.strip()
+    # تحويل allowed_service_ids إلى dict إذا وصل كقائمة
+    if isinstance(allowed_service_ids, list):
+        allowed_service_ids = {str(idx+1): name for idx, name in enumerate(allowed_service_ids)}
 
     # رجوع المستخدم للقائمة الرئيسية
     if msg == "0":
         user_states[user_id] = "main_menu"
-        return "القائمة الرئيسية هنا..."
+        return main_menu_text if main_menu_text else "القائمة الرئيسية غير متوفرة!"
 
-    # دخول المستخدم على خدمة معينة من القائمة (مثال: 2 أو 3)
+    # دخول المستخدم على خدمة معينة من القائمة (مثال: 2 أو 3 أو 4 ...)
     if msg in allowed_service_ids:
-        # فتح خدمة جديدة وإلغاء أي انتظار سابق
-        user_states[user_id] = f"awaiting_order_{service_name}"
-        response = f"*📦 {service_name}:*\n"
+        chosen_service = allowed_service_ids[msg]
+        user_states[user_id] = f"awaiting_order_{chosen_service}"
+        response = f"*📦 {chosen_service}:*\n"
         for i, store in enumerate(stores_list, 1):
             response += f"{i}. {store}\n"
         response += "\n99. اطلب الآن"
         return response
 
     # بدء إدخال الطلب بعد الضغط على 99 (فقط إذا الحالة صحيحة)
+    current_state = user_states.get(user_id)
     if msg == "99":
-        current_state = user_states.get(user_id)
         if current_state and current_state.startswith("awaiting_order_"):
             current_service = current_state.replace("awaiting_order_", "")
             user_states[user_id] = f"waiting_input_{current_service}"
@@ -60,15 +72,16 @@ def handle_service(user_id, message, user_states, user_orders, service_id, servi
             return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
 
     # حفظ الطلب فقط إذا الحالة انتظار إدخال طلب للخدمة الصحيحة
-    current_state = user_states.get(user_id)
     if current_state and current_state.startswith("waiting_input_"):
         # منع أرقام الخدمات كطلب أثناء انتظار إدخال الطلب
         if msg in allowed_service_ids:
-            # فتح الخدمة الجديدة بدلاً من حفظ الطلب
-            new_service_name = [name for id, name in allowed_service_ids.items() if id == msg][0]
+            new_service_name = allowed_service_ids[msg]
             user_states[user_id] = f"awaiting_order_{new_service_name}"
-            # هنا يمكنك إعادة إرسال قائمة المتاجر الخاصة بالخدمة الجديدة إذا أردت
-            return f"*📦 {new_service_name}:*\n99. اطلب الآن"
+            response = f"*📦 {new_service_name}:*\n"
+            for i, store in enumerate(stores_list, 1):
+                response += f"{i}. {store}\n"
+            response += "\n99. اطلب الآن"
+            return response
         # منع الطلبات الفارغة
         if not msg or len(msg) < 2:
             return "❗️الطلب المدخل غير صحيح. الرجاء كتابة الطلب بشكل واضح."
