@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>منيو التجريب</title>
+</head>
+<body>
+  <h2>اختر المنتجات:</h2>
+  <form method="POST" action="/send_menu_order">
+    <label><input type="checkbox" name="items" value="خبز"> 🍞 خبز</label><br>
+    <label><input type="checkbox" name="items" value="بيبسي"> 🥤 بيبسي</label><br>
+    <label><input type="checkbox" name="items" value="شاي"> ☕ شاي</label><br><br>
+
+    <input type="hidden" name="phone" value="966500000000"> <!-- رقم وهمي للتجربة -->
+    <button type="submit">إرسال الطلب</button>
+  </form>
+</body>
+</html>
