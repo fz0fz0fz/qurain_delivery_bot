@@ -1,6 +1,5 @@
 from flask import render_template, request
 import requests
-import os
 
 from app import app  # استدعاء app من ملفك الرئيسي
 
@@ -20,12 +19,9 @@ def send_menu_order():
     # إعداد الرسالة
     text = f"📦 *طلب جديد من المتجر:*\n- " + "\n- ".join(items)
 
-    # جلب بيانات UltraMsg من متغيرات البيئة
-    ultra_token = os.getenv("ULTRA_TOKEN")
-    instance_id = os.getenv("INSTANCE_ID")
-
-    if not ultra_token or not instance_id:
-        return "❌ متغيرات البيئة ULTRA_TOKEN أو INSTANCE_ID غير معرفة"
+    # بيانات UltraMsg (مكشوفة للتجربة فقط)
+    ultra_token = "9dxefhg0k4l3b7ak"
+    instance_id = "instance130542"
 
     url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
     payload = {
