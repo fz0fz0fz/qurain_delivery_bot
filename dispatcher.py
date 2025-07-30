@@ -207,14 +207,16 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         "4": {"name": "الخضار", "stores": ["خضار الطازج", "سوق المزارعين"]},
     }.items():
         response = handle_service(
-            user_id,
-            message,
-            user_states,
-            user_orders,
-            service_id,
-            service_info["name"],
-            service_info["stores"]
-        )
+    user_id,
+    message,
+    user_states,
+    user_orders,
+    service_id,
+    service_info["name"],
+    service_info["stores"],
+    allowed_service_ids,
+    handle_main_menu("0")
+)
         if response:
             return response
     return None
