@@ -4,9 +4,57 @@ from services.unified_service import handle_service
 import sqlite3
 import re
 
-# استورد دوال الربط إن وضعتها في db_utils.py:
-# from db_utils import save_order_driver, get_driver_by_order
+# تعريف قاموس الخدمات الموحد
+allowed_service_ids = {
+    "1": "حكومي",
+    "2": "صيدلية",
+    "3": "بقالة",
+    "4": "خضار",
+    "5": "رحلات",
+    "6": "حلا",
+    "7": "أسر منتجة",
+    "8": "مطاعم",
+    "9": "قرطاسية",
+    "10": "محلات",
+    "11": "شالية",
+    "12": "وايت",
+    "13": "شيول",
+    "14": "دفان",
+    "15": "مواد بناء وعوازل",
+    "16": "عمال",
+    "17": "محلات مهنية",
+    "18": "ذبائح وملاحم",
+    "19": "نقل مدرسي ومشاوير",
+    "20": "طلباتك"
+}
 
+# نص القائمة الرئيسية الموحد
+main_menu_text = (
+    "*📋 خدمات القرين:*\n"
+    "1️⃣ حكومي\n"
+    "2️⃣ صيدلية 💊\n"
+    "3️⃣ بقالة 🥤\n"
+    "4️⃣ خضار 🥬\n"
+    "5️⃣ رحلات ⛺️\n"
+    "6️⃣ حلا 🍮\n"
+    "7️⃣ أسر منتجة 🥧\n"
+    "8️⃣ مطاعم 🍔\n"
+    "9️⃣ قرطاسية 📗\n"
+    "🔟 محلات 🏪\n"
+    "11. شالية 🏖\n"
+    "12. وايت 🚛\n"
+    "13. شيول 🚜\n"
+    "14. دفان 🏗\n"
+    "15. مواد بناء وعوازل 🧱\n"
+    "16. عمال 👷\n"
+    "17. محلات مهنية 🔨\n"
+    "18. ذبائح وملاحم 🥩\n"
+    "19. نقل مدرسي ومشاوير 🚍\n"
+    "20. طلباتك 🧾\n\n"
+    "✉️ لاقتراح أو شكوى أرسل: 100"
+)
+
+# بقية الكود كما هو في ملفك السابق
 def save_order_driver(order_number, driver_id):
     conn = sqlite3.connect('orders.db')
     c = conn.cursor()
@@ -24,7 +72,6 @@ def get_driver_by_order(order_number):
         return row[0]
     return None
 
-# ==== قواعد البيانات ====
 def get_unsent_orders_from_db(user_id):
     conn = sqlite3.connect('orders.db')
     c = conn.cursor()
@@ -61,30 +108,7 @@ def get_user_id_by_order_number(order_number):
 
 def handle_main_menu(message):
     if message.strip() in ["0", ".", "٠", "خدمات"]:
-        return (
-            "*📋 خدمات القرين:*\n"
-            "1️⃣ حكومي\n"
-            "2️⃣ صيدلية 💊\n"
-            "3️⃣ بقالة 🥤\n"
-            "4️⃣ خضار 🥬\n"
-            "5️⃣ رحلات ⛺️\n"
-            "6️⃣ حلا 🍮\n"
-            "7️⃣ أسر منتجة 🥧\n"
-            "8️⃣ مطاعم 🍔\n"
-            "9️⃣ قرطاسية 📗\n"
-            "🔟 محلات 🏪\n"
-            "11. شالية 🏖\n"
-            "12. وايت 🚛\n"
-            "13. شيول 🚜\n"
-            "14. دفان 🏗\n"
-            "15. مواد بناء وعوازل 🧱\n"
-            "16. عمال 👷\n"
-            "17. محلات مهنية 🔨\n"
-            "18. ذبائح وملاحم 🥩\n"
-            "19. نقل مدرسي ومشاوير 🚍\n"
-            "20. طلباتك 🧾\n\n"
-            "✉️ لاقتراح أو شكوى أرسل: 100"
-        )
+        return main_menu_text
     return None
 
 def handle_feedback(user_id, message, user_states):
@@ -140,7 +164,7 @@ def handle_driver_accept_order(message, driver_id, user_states):
         order_id = match.group(1)
         user_id = get_user_id_by_order_number(order_id)
         if user_id:
-            save_order_driver(order_id, driver_id)  # حفظ الربط دائمًا
+            save_order_driver(order_id, driver_id)
             user_states[user_id] = "awaiting_location"
             send_message(
                 user_id,
@@ -169,7 +193,7 @@ def handle_user_location(user_id, message, user_states, latitude=None, longitude
         if not order_id:
             send_message(user_id, "🚫 لم يتم العثور على رقم طلبك.")
             return "لا يوجد طلب بانتظار موقع."
-        driver_id = get_driver_by_order(order_id)  # استرجاع من القاعدة
+        driver_id = get_driver_by_order(order_id)
         if not driver_id:
             send_message(user_id, "🚫 لم يتم العثور على المندوب المرتبط بالطلب.")
             return "لا يوجد مندوب مرتبط بالطلب."
@@ -207,16 +231,16 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         "4": {"name": "الخضار", "stores": ["خضار الطازج", "سوق المزارعين"]},
     }.items():
         response = handle_service(
-    user_id,
-    message,
-    user_states,
-    user_orders,
-    service_id,
-    service_info["name"],
-    service_info["stores"],
-    allowed_service_ids,
-    handle_main_menu("0")
-)
+            user_id,
+            message,
+            user_states,
+            user_orders,
+            service_id,
+            service_info["name"],
+            service_info["stores"],
+            allowed_service_ids,
+            main_menu_text
+        )
         if response:
             return response
     return None
