@@ -42,11 +42,30 @@ def handle_service(
     main_menu_text=None  # القائمة الرئيسية يتم تمريرها من dispatcher.py
 ):
     msg = message.strip()
+    current_state = user_states.get(user_id)
+    
     # تحويل allowed_service_ids إلى dict إذا وصل كقائمة
     if isinstance(allowed_service_ids, list):
         allowed_service_ids = {str(idx+1): name for idx, name in enumerate(allowed_service_ids)}
 
-    # رجوع المستخدم للقائمة الرئيسية
+    # إذا الحالة هي القائمة الرئيسية، لا تستقبل أي نص إلا رقم خدمة أو 0 أو 20
+    if current_state == "main_menu":
+        if msg == "0":
+            return main_menu_text if main_menu_text else "القائمة الرئيسية غير متوفرة!"
+        if msg == "20":
+            return get_orders_for_user(user_id)
+        if msg in allowed_service_ids:
+            chosen_service = allowed_service_ids[msg]
+            user_states[user_id] = f"awaiting_order_{chosen_service}"
+            response = f"*📦 {chosen_service}:*\n"
+            for i, store in enumerate(stores_list, 1):
+                response += f"{i}. {store}\n"
+            response += "\n99. اطلب الآن"
+            return response
+        # تجاهل أي نص آخر في القائمة الرئيسية
+        return "❗️يرجى اختيار رقم خدمة من القائمة أولًا."
+
+    # رجوع المستخدم للقائمة الرئيسية من أي مكان
     if msg == "0":
         user_states[user_id] = "main_menu"
         return main_menu_text if main_menu_text else "القائمة الرئيسية غير متوفرة!"
@@ -62,7 +81,6 @@ def handle_service(
         return response
 
     # بدء إدخال الطلب بعد الضغط على 99 (فقط إذا الحالة صحيحة)
-    current_state = user_states.get(user_id)
     if msg == "99":
         if current_state and current_state.startswith("awaiting_order_"):
             current_service = current_state.replace("awaiting_order_", "")
@@ -94,4 +112,4 @@ def handle_service(
     if msg == "20":
         return get_orders_for_user(user_id)
 
-    return None 
+    return None
