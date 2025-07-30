@@ -71,3 +71,4 @@ def webhook():
         send_message(phone, response)
 
     return "✅ OK", 200
+import menu_app
