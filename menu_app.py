@@ -1,23 +1,40 @@
-from flask import render_template, request
-from app import app
-from send_utils import send_message
+from flask import render_template, request import requests
 
-@app.route("/menu", methods=["GET"])
-def show_menu():
-    return render_template("menu.html")
+from app import app  # استدعاء app من ملفك الرئيسي
 
-@app.route("/send_menu_order", methods=["POST"])
-def send_menu_order():
-    name = request.form.get("name")
-    phone = request.form.get("phone")
-    items = request.form.getlist("items")
+@app.route("/menu", methods=["GET"]) def menu_page(): return render_template("menu.html")
 
-    if not phone or not items:
-        return "❗ يجب إدخال رقم الهاتف واختيار منتج واحد على الأقل"
+@app.route("/send_menu_order", methods=["POST"]) def send_menu_order(): name = request.form.get("name") phone = request.form.get("phone") items = request.form.getlist("items")
 
-    message = f"*📦 [طلب من الموقع]*\n👤 الاسم: {name}\n📞 رقم العميل: {phone}\n🛒 الطلب:\n- " + "\n- ".join(items)
+if not name or not phone or not items:
+    return "❗ يجب إدخال الاسم ورقم الهاتف واختيار منتج واحد على الأقل"
 
-    send_message("966503813344", message)
-    send_message("966507005272", message)
+# الرسالة للتجربة، مع وسم واضح
+text = f"*📦 [طلب من الموقع]*\n👤 الاسم: {name}\n📞 رقم العميل: {phone}\n🛒 الطلب:\n- " + "\n- ".join(items)
 
-    return "✅ تم إرسال الطلب عبر واتساب!"
+# بيانات UltraMsg (مكشوفة للتجربة فقط)
+ultra_token = "9dxefhg0k4l3b7ak"
+instance_id = "instance130542"
+
+url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
+payload = {
+    "token": ultra_token,
+    "to": phone,
+    "body": text
+}
+
+try:
+    response = requests.post(url, json=payload)
+
+    # 🪵 طباعة للتتبع في لوق Render
+    print("📨 تم إرسال الطلب إلى UltraMsg")
+    print("📤 UltraMsg response:", response.status_code, response.text)
+
+    if response.status_code == 200:
+        return "✅ تم إرسال الطلب إلى واتساب!"
+    else:
+        return f"❌ فشل في الإرسال: {response.text}"
+except Exception as e:
+    print("❌ خطأ في الاتصال بـ UltraMsg:", str(e))
+    return f"❌ خطأ أثناء الاتصال بـ UltraMsg: {str(e)}"
+
