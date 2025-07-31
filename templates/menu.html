@@ -1,86 +1,19 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>قائمة الصيدلية</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body {
-            font-family: Tahoma, sans-serif;
-            background: #f0f2f5;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-        }
-        .container {
-            max-width: 600px;
-            margin: auto;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #00695c;
-        }
-        label {
-            font-weight: bold;
-        }
-        .product {
-            margin: 15px 0;
-            padding: 15px;
-            background: #e0f7fa;
-            border-radius: 8px;
-        }
-        .product input {
-            margin-left: 10px;
-        }
-        .submit-btn {
-            background-color: #00796b;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            display: block;
-            margin: 20px auto 0;
-        }
-        .submit-btn:hover {
-            background-color: #004d40;
-        }
-        input[type="tel"] {
-            width: 100%;
-            padding: 10px;
-            margin: 12px 0;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>طلب منيو الصيدلية</title>
 </head>
 <body>
-    <div class="container">
-        <h1>🛒 قائمة منتجات الصيدلية</h1>
-        <form action="/send_menu_order" method="POST">
-            <label>رقم الواتساب (مع المفتاح الدولي)</label>
-            <input type="tel" name="phone" placeholder="مثال: 9665XXXXXXXX" required>
-
-            <div class="product">
-                <label><input type="checkbox" name="items" value="بانادول - 10 ريال"> بانادول - 10 ريال</label>
-            </div>
-            <div class="product">
-                <label><input type="checkbox" name="items" value="شامبو نيزورال (صغير) - 25 ريال"> شامبو نيزورال (صغير) - 25 ريال</label>
-            </div>
-            <div class="product">
-                <label><input type="checkbox" name="items" value="شامبو نيزورال (كبير) - 40 ريال"> شامبو نيزورال (كبير) - 40 ريال</label>
-            </div>
-            <div class="product">
-                <label><input type="checkbox" name="items" value="مرهم فيوسيدين - 15 ريال"> مرهم فيوسيدين - 15 ريال</label>
-            </div>
-
-            <button type="submit" class="submit-btn">إرسال الطلب إلى واتساب</button>
-        </form>
-    </div>
+  <h2>منيو الصيدلية</h2>
+  <form action="/send_menu_order" method="POST">
+    الاسم: <input type="text" name="name" required><br>
+    رقم الجوال (9665xxxx): <input type="text" name="phone" required><br><br>
+    المنتجات:<br>
+    <input type="checkbox" name="items" value="شامبو حجم كبير"> شامبو حجم كبير<br>
+    <input type="checkbox" name="items" value="مسكن ألم"> مسكن ألم<br>
+    <input type="checkbox" name="items" value="فيتامين C"> فيتامين C<br><br>
+    <button type="submit">إرسال الطلب</button>
+  </form>
 </body>
 </html>
