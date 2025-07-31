@@ -1,19 +1,37 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>طلب منيو الصيدلية</title>
+    <meta charset="UTF-8">
+    <title>منيو الطلب</title>
 </head>
 <body>
-  <h2>منيو الصيدلية</h2>
-  <form action="/send_menu_order" method="POST">
-    الاسم: <input type="text" name="name" required><br>
-    رقم الجوال (9665xxxx): <input type="text" name="phone" required><br><br>
-    المنتجات:<br>
-    <input type="checkbox" name="items" value="شامبو حجم كبير"> شامبو حجم كبير<br>
-    <input type="checkbox" name="items" value="مسكن ألم"> مسكن ألم<br>
-    <input type="checkbox" name="items" value="فيتامين C"> فيتامين C<br><br>
-    <button type="submit">إرسال الطلب</button>
-  </form>
+    <h1>اختر المنتجات</h1>
+    <form method="POST" action="/send_menu_order">
+        <label>الاسم:</label><br>
+        <input type="text" name="name" placeholder="الاسم"><br><br>
+
+        <label>رقم الجوال:</label><br>
+        <input type="tel" name="phone" id="phone" placeholder="05xxxxxxxx"><br><br>
+
+        <label>المنتجات:</label><br>
+        <input type="checkbox" name="items" value="شامبو"> شامبو<br>
+        <input type="checkbox" name="items" value="معجون أسنان"> معجون أسنان<br>
+        <input type="checkbox" name="items" value="مسكن ألم"> مسكن ألم<br><br>
+
+        <button type="submit">إرسال الطلب</button>
+    </form>
+
+    <!-- ✅ كود تعبئة الرقم من الرابط -->
+    <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      const phone = urlParams.get('phone');
+      if (phone) {
+        const phoneInput = document.getElementById("phone");
+        if (phoneInput) {
+          phoneInput.value = phone;
+          phoneInput.readOnly = true;
+        }
+      }
+    </script>
 </body>
 </html>
