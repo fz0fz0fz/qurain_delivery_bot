@@ -1,4 +1,4 @@
-SERVICES = {
+
     SERVICES = {
     "1": {
         "name": "حكومي",
