@@ -241,24 +241,24 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     if response: return response
 
     # عرض الخدمات من SERVICES بناءً على إدخال المستخدم إذا أرسل رقم خدمة
- if msg.isdigit() and msg in SERVICES:
-    service_id = msg
-    service_data = SERVICES[service_id]
-    # إذا يوجد display_msg أرسله، وإلا أرسل القديم
-    if "display_msg" in service_data:
-        return service_data["display_msg"]
-    else:
-        return handle_service(
-            user_id,
-            msg,
-            user_states,
-            user_orders,
-            service_id,
-            service_data.get("name", ""),
-            service_data.get("items", []),
-            allowed_service_ids,
-            main_menu_text
-        )
+    if msg.isdigit() and msg in SERVICES:
+        service_id = msg
+        service_data = SERVICES[service_id]
+        # إذا يوجد display_msg أرسله، وإلا أرسل القديم
+        if "display_msg" in service_data:
+            return service_data["display_msg"]
+        else:
+            return handle_service(
+                user_id,
+                msg,
+                user_states,
+                user_orders,
+                service_id,
+                service_data.get("name", ""),
+                service_data.get("items", []),
+                allowed_service_ids,
+                main_menu_text
+            )
 
     # البحث الذكي في الخدمات
     results = search_services_arabic(msg, SERVICES)
