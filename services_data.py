@@ -122,6 +122,102 @@ SERVICES = {
         ]
     },
     "3": {
+        "name": "بقالة",
+        "display_msg": """🥤 [3] قائمة البقالات :
+
+🛒 بقالة سلة سلطانة
+📞 +966509007300
+📍 https://maps.app.goo.gl/5VXuKAwCn4NzuiVYA
+
+━━━━━━━━━━━━━━━
+
+🛒 بقالة ركن قريتي
+📞 +966537081794
+📍 https://maps.app.goo.gl/xR8kU4E3PDw32jeu5
+
+━━━━━━━━━━━━━━━
+
+🛒 بقالة شموع الوسام
+📞 0539881727
+📍 https://maps.app.goo.gl/VEnZ7bPQeJvDawTA6
+
+━━━━━━━━━━━━━━━
+
+⛽ محطة صالح
+📞 0554181777
+📍 https://maps.app.goo.gl/i25nbWM1xycNBKkj7
+
+━━━━━━━━━━━━━━━
+
+⛽ محطة بابل
+📞 0559513561
+📍 https://maps.app.goo.gl/8jtpoNzBVt6hr36v9
+
+━━━━━━━━━━━━━━━
+
+⛽ محطة السالمي
+📍 https://maps.app.goo.gl/gHN8yAEsdprhj2LW6
+
+━━━━━━━━━━━━━━━
+
+🎒 لوازم رحلات:
+
+🧺 محل ركن الوسم
+📞 0530165380
+📍 https://maps.app.goo.gl/yNBoArtpAJa3JvR77
+
+🧺 محل صندوق الرحلة
+📞 0506438303
+📍 https://maps.app.goo.gl/8Ze2w48KZnKnMZP26
+
+━━━━━━━━━━━━━━━
+🔄 أرسل 0 للعودة إلى القائمة الرئيسية
+📅 آخر تحديث: أغسطس 2025
+""",
+        "items": [
+            {
+                "name": "بقالة سلة سلطانة",
+                "phone": "+966509007300",
+                "map": "https://maps.app.goo.gl/5VXuKAwCn4NzuiVYA"
+            },
+            {
+                "name": "بقالة ركن قريتي",
+                "phone": "+966537081794",
+                "map": "https://maps.app.goo.gl/xR8kU4E3PDw32jeu5"
+            },
+            {
+                "name": "بقالة شموع الوسام",
+                "phone": "0539881727",
+                "map": "https://maps.app.goo.gl/VEnZ7bPQeJvDawTA6"
+            },
+            {
+                "name": "محطة صالح",
+                "phone": "0554181777",
+                "map": "https://maps.app.goo.gl/i25nbWM1xycNBKkj7"
+            },
+            {
+                "name": "محطة بابل",
+                "phone": "0559513561",
+                "map": "https://maps.app.goo.gl/8jtpoNzBVt6hr36v9"
+            },
+            {
+                "name": "محطة السالمي",
+                "phone": "",
+                "map": "https://maps.app.goo.gl/gHN8yAEsdprhj2LW6"
+            },
+            {
+                "name": "محل ركن الوسم",
+                "phone": "0530165380",
+                "map": "https://maps.app.goo.gl/yNBoArtpAJa3JvR77"
+            },
+            {
+                "name": "محل صندوق الرحلة",
+                "phone": "0506438303",
+                "map": "https://maps.app.goo.gl/8Ze2w48KZnKnMZP26"
+            }
+        ]
+    },
+    "3": {
         "name": "بقالة ورحلات",
         "items": [
             # {"name": "بقالة التميمي", "phone": "0500000001"},
