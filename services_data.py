@@ -1,5 +1,4 @@
-
-    SERVICES = {
+SERVICES = {
     "1": {
         "name": "حكومي",
         "display_msg": """
