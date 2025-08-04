@@ -4,9 +4,7 @@ from services.unified_service import handle_service
 import sqlite3
 import re
 
-# استيراد دالة البحث الذكي
 from search_utils import search_services_arabic
-# استيراد بيانات الخدمات (تأكد من صحة المسار)
 from services_data import SERVICES
 
 allowed_service_ids = {
@@ -210,7 +208,6 @@ def handle_user_location(user_id, message, user_states, latitude=None, longitude
             return "يرجى إرسال الموقع الصحيح"
     return None
 
-# دالة تنسيق نتائج البحث
 def format_search_results(results):
     if not results:
         return "لم يتم العثور على نتائج مطابقة.\n🔄 أرسل 0 للعودة للقائمة الرئيسية"
@@ -225,41 +222,40 @@ def format_search_results(results):
     return msg
 
 def dispatch_message(user_id, message, user_states, user_orders, driver_id=None, latitude=None, longitude=None):
-    if message.strip() in ["99", "٩٩"]:
+    msg = message.strip()
+    if msg in ["99", "٩٩"]:
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
             return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
-    response = handle_main_menu(message)
+    response = handle_main_menu(msg)
     if response: return response
-    response = handle_feedback(user_id, message, user_states)
+    response = handle_feedback(user_id, msg, user_states)
     if response: return response
-    response = handle_view_orders(user_id, message, user_orders)
+    response = handle_view_orders(user_id, msg, user_orders)
     if response: return response
-    response = handle_finalize_order(user_id, message, user_orders)
+    response = handle_finalize_order(user_id, msg, user_orders)
     if response: return response
     if driver_id:
-        response = handle_driver_accept_order(message, driver_id, user_states)
+        response = handle_driver_accept_order(msg, driver_id, user_states)
         if response: return response
-    response = handle_user_location(user_id, message, user_states, latitude=latitude, longitude=longitude)
+    response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response: return response
-    for service_id, service_info in {
-        "2": {"name": "الصيدلية", "stores": ["صيدلية الدواء", "صيدلية النهدي"]},
-        "3": {"name": "البقالة", "stores": ["بقالة التميمي", "بقالة الخير"]},
-        "4": {"name": "الخضار", "stores": ["خضار الطازج", "سوق المزارعين"]},
-    }.items():
-        response = handle_service(
+
+    # عرض الخدمات من SERVICES بناءً على إدخال المستخدم إذا أرسل رقم خدمة
+    if msg.isdigit() and msg in SERVICES:
+        service_id = msg
+        service_data = SERVICES[service_id]
+        return handle_service(
             user_id,
-            message,
+            msg,
             user_states,
             user_orders,
             service_id,
-            service_info["name"],
-            service_info["stores"],
+            service_data.get("name", ""),
+            service_data.get("items", []),
             allowed_service_ids,
             main_menu_text
         )
-        if response:
-            return response
 
     # البحث الذكي في الخدمات
-    results = search_services_arabic(message, SERVICES)
+    results = search_services_arabic(msg, SERVICES)
     return format_search_results(results)
