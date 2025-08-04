@@ -1,17 +1,3 @@
-from init_db import init_db
-init_db()
-
-import sqlite3
-DB_PATH = "orders.db"
-def print_tables():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    tables = c.fetchall()
-    conn.close()
-    print("📦 الجداول الموجودة:", [t[0] for t in tables])
-print_tables()
-
 from flask import Flask, request
 from dispatcher import dispatch_message
 from send_utils import send_message  # تأكد من الاستيراد هنا
@@ -28,7 +14,7 @@ def index():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
-    print("بيانات الواتساب الواردة:", data)
+    # print("بيانات الواتساب الواردة:", data)  # يمكنك حذف هذا أيضاً إذا انتهيت من الفحص
 
     if not data:
         return "❌ No data received", 400
@@ -71,4 +57,5 @@ def webhook():
         send_message(phone, response)
 
     return "✅ OK", 200
-import menu_app
+
+import menu_app  # ابقه إذا كنت تحتاجه في مكان آخر
