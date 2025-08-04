@@ -4,7 +4,11 @@ from services.unified_service import handle_service
 import sqlite3
 import re
 
-# تعريف قاموس الخدمات الموحد
+# استيراد دالة البحث الذكي
+from search_utils import search_services_arabic
+# استيراد بيانات الخدمات (تأكد من صحة المسار)
+from services_data import SERVICES
+
 allowed_service_ids = {
     "1": "حكومي",
     "2": "صيدلية",
@@ -28,7 +32,6 @@ allowed_service_ids = {
     "20": "طلباتك"
 }
 
-# نص القائمة الرئيسية الموحد
 main_menu_text = (
     "*📋 خدمات القرين:*\n"
     "1️⃣ حكومي\n"
@@ -54,7 +57,6 @@ main_menu_text = (
     "✉️ لاقتراح أو شكوى أرسل: 100"
 )
 
-# بقية الكود كما هو في ملفك السابق
 def save_order_driver(order_number, driver_id):
     conn = sqlite3.connect('orders.db')
     c = conn.cursor()
@@ -208,6 +210,20 @@ def handle_user_location(user_id, message, user_states, latitude=None, longitude
             return "يرجى إرسال الموقع الصحيح"
     return None
 
+# دالة تنسيق نتائج البحث
+def format_search_results(results):
+    if not results:
+        return "لم يتم العثور على نتائج مطابقة.\n🔄 أرسل 0 للعودة للقائمة الرئيسية"
+    msg = "*🔎 نتائج البحث:*\n\n"
+    for r in results:
+        if r['phone']:
+            msg += f"{r['name']}\n📞 {r['phone']}\n\n"
+        else:
+            msg += f"{r['name']}\n\n"
+    msg += "━━━━━━━━━━━━━━━\n"
+    msg += "🔄 أرسل 0 للعودة للقائمة الرئيسية"
+    return msg
+
 def dispatch_message(user_id, message, user_states, user_orders, driver_id=None, latitude=None, longitude=None):
     if message.strip() in ["99", "٩٩"]:
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
@@ -243,4 +259,7 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         )
         if response:
             return response
-    return None
+
+    # البحث الذكي في الخدمات
+    results = search_services_arabic(message, SERVICES)
+    return format_search_results(results)
