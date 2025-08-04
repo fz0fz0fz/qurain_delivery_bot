@@ -155,11 +155,6 @@ SERVICES = {
 
 ━━━━━━━━━━━━━━━
 
-⛽ محطة السالمي
-📍 https://maps.app.goo.gl/gHN8yAEsdprhj2LW6
-
-━━━━━━━━━━━━━━━
-
 🎒 لوازم رحلات:
 
 🧺 محل ركن الوسم
@@ -199,11 +194,6 @@ SERVICES = {
                 "name": "محطة بابل",
                 "phone": "0559513561",
                 "map": "https://maps.app.goo.gl/8jtpoNzBVt6hr36v9"
-            },
-            {
-                "name": "محطة السالمي",
-                "phone": "",
-                "map": "https://maps.app.goo.gl/gHN8yAEsdprhj2LW6"
             },
             {
                 "name": "محل ركن الوسم",
