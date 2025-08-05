@@ -251,10 +251,33 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response: return response
 
-    # --- هذا هو الإضافة الهامة ---
+    # -------- البداية منطق النقل المدرسي وتسجيل السائقين --------
     if msg == "14" or msg in ["نقل", "مشاوير"]:
-        return create_drivers_message()
-    # ----------------------------
+        user_states[user_id] = "awaiting_driver_register"
+        return create_drivers_message() + "\n\n🚗 إذا أردت التسجيل كسائق أرسل: 88"
+
+    if msg == "88" and user_states.get(user_id) == "awaiting_driver_register":
+        user_states[user_id] = "awaiting_driver_name"
+        return "🚗 أرسل اسمك الثلاثي للتسجيل كسائق:"
+
+    if user_states.get(user_id) == "awaiting_driver_name":
+        user_states[user_id] = "awaiting_driver_phone"
+        user_states[f"{user_id}_driver_name"] = msg
+        return "📞 أرسل رقم جوالك (مثال: 9665xxxxxxxx):"
+
+    if user_states.get(user_id) == "awaiting_driver_phone":
+        name = user_states.get(f"{user_id}_driver_name", "")
+        phone = msg
+        from driver_register import driver_exists, add_driver
+        if driver_exists(phone):
+            user_states.pop(user_id, None)
+            user_states.pop(f"{user_id}_driver_name", None)
+            return "✅ أنت مسجل مسبقاً كسائق لدينا."
+        add_driver(name, phone, user_id)
+        user_states.pop(user_id, None)
+        user_states.pop(f"{user_id}_driver_name", None)
+        return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone}"
+    # -------- نهاية منطق النقل المدرسي وتسجيل السائقين --------
 
     # عرض الخدمات من SERVICES بناءً على إدخال المستخدم إذا أرسل رقم خدمة
     if msg.isdigit() and msg in SERVICES:
