@@ -298,6 +298,18 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
                 allowed_service_ids,
                 main_menu_text
             )
+# منطق حذف السائق
+if msg in ["حذف سائق", "89"]:
+    # نحصل على رقم الجوال من user_id (أو تطلب منه رقم الجوال)
+    phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
+    from driver_register import delete_driver_by_phone, driver_exists
+    if not driver_exists(phone):
+        return "🚫 لم يتم العثور على بياناتك كسائق لدينا."
+    deleted = delete_driver_by_phone(phone)
+    if deleted:
+        return "✅ تم حذفك من قائمة السائقين بنجاح."
+    else:
+        return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
 
     # البحث الذكي في الخدمات
     results = search_services_arabic(msg, SERVICES)
