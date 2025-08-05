@@ -290,15 +290,16 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
 
     # -------- منطق حذف السائق --------
     if msg in ["حذف سائق", "89"]:
-        phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
-        from driver_register import delete_driver_by_phone, driver_exists
-        if not driver_exists(phone):
-            return "🚫 لم يتم العثور على بياناتك كسائق لدينا."
-        deleted = delete_driver_by_phone(phone)
-        if deleted:
-            return "✅ تم حذفك من قائمة السائقين بنجاح."
-        else:
-            return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
+    phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
+    from driver_register import normalize_phone, delete_driver_by_phone, driver_exists
+    phone_norm = normalize_phone(phone)
+    if not driver_exists(phone_norm):
+        return "🚫 لم يتم العثور على بياناتك كسائق لدينا."
+    deleted = delete_driver_by_phone(phone_norm)
+    if deleted:
+        return "✅ تم حذفك من قائمة السائقين بنجاح."
+    else:
+        return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
 
     # عرض الخدمات من SERVICES بناءً على إدخال المستخدم إذا أرسل رقم خدمة
     if msg.isdigit() and msg in SERVICES:
