@@ -24,6 +24,7 @@ def create_drivers_message():
         "━━━━━━━━━━━━━━━"
     )
     return msg
+
 allowed_service_ids = {
     "1": "حكومي",
     "2": "صيدلية",
@@ -279,17 +280,18 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone}"
     # -------- نهاية منطق النقل المدرسي وتسجيل السائقين --------
 
-# -------- منطق حذف السائق --------
-if msg in ["حذف سائق", "89"]:
-    phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
-    from driver_register import delete_driver_by_phone, driver_exists
-    if not driver_exists(phone):
-        return "🚫 لم يتم العثور على بياناتك كسائق لدينا."
-    deleted = delete_driver_by_phone(phone)
-    if deleted:
-        return "✅ تم حذفك من قائمة السائقين بنجاح."
-    else:
-        return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
+    # -------- منطق حذف السائق --------
+    if msg in ["حذف سائق", "89"]:
+        phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
+        from driver_register import delete_driver_by_phone, driver_exists
+        if not driver_exists(phone):
+            return "🚫 لم يتم العثور على بياناتك كسائق لدينا."
+        deleted = delete_driver_by_phone(phone)
+        if deleted:
+            return "✅ تم حذفك من قائمة السائقين بنجاح."
+        else:
+            return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
+
     # عرض الخدمات من SERVICES بناءً على إدخال المستخدم إذا أرسل رقم خدمة
     if msg.isdigit() and msg in SERVICES:
         service_id = msg
