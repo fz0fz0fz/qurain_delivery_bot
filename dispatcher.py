@@ -267,38 +267,38 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         return "📞 أرسل رقم جوالك (مثال: 9665xxxxxxxx):"
 
     if user_states.get(user_id) == "awaiting_driver_phone":
-    name = user_states.get(f"{user_id}_driver_name", "")
-    phone_input = msg.strip()
-    phone_real = user_id.split("@")[0] if "@c.us" in user_id else user_id
-    # تطبيع الرقمين
-    from driver_register import normalize_phone, driver_exists, add_driver
-    phone_input_norm = normalize_phone(phone_input)
-    phone_real_norm = normalize_phone(phone_real)
-    if not (phone_input_norm == phone_real_norm):
+        name = user_states.get(f"{user_id}_driver_name", "")
+        phone_input = msg.strip()
+        phone_real = user_id.split("@")[0] if "@c.us" in user_id else user_id
+        # تطبيع الرقمين
+        from driver_register import normalize_phone, driver_exists, add_driver
+        phone_input_norm = normalize_phone(phone_input)
+        phone_real_norm = normalize_phone(phone_real)
+        if not (phone_input_norm == phone_real_norm):
+            user_states.pop(user_id, None)
+            user_states.pop(f"{user_id}_driver_name", None)
+            return f"🚫 يجب أن تسجل برقم جوالك المرتبط بالواتساب: {phone_real_norm}"
+        if driver_exists(phone_real_norm):
+            user_states.pop(user_id, None)
+            user_states.pop(f"{user_id}_driver_name", None)
+            return "✅ أنت مسجل مسبقاً كسائق لدينا."
+        add_driver(name, phone_real_norm, user_id)
         user_states.pop(user_id, None)
         user_states.pop(f"{user_id}_driver_name", None)
-        return f"🚫 يجب أن تسجل برقم جوالك المرتبط بالواتساب: {phone_real_norm}"
-    if driver_exists(phone_real_norm):
-        user_states.pop(user_id, None)
-        user_states.pop(f"{user_id}_driver_name", None)
-        return "✅ أنت مسجل مسبقاً كسائق لدينا."
-    add_driver(name, phone_real_norm, user_id)
-    user_states.pop(user_id, None)
-    user_states.pop(f"{user_id}_driver_name", None)
-    return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone_real_norm}"
+        return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone_real_norm}"
 
     # -------- منطق حذف السائق --------
     if msg in ["حذف سائق", "89"]:
-    phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
-    from driver_register import normalize_phone, delete_driver_by_phone, driver_exists
-    phone_norm = normalize_phone(phone)
-    if not driver_exists(phone_norm):
-        return "🚫 لم يتم العثور على بياناتك كسائق لدينا."
-    deleted = delete_driver_by_phone(phone_norm)
-    if deleted:
-        return "✅ تم حذفك من قائمة السائقين بنجاح."
-    else:
-        return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
+        phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
+        from driver_register import normalize_phone, delete_driver_by_phone, driver_exists
+        phone_norm = normalize_phone(phone)
+        if not driver_exists(phone_norm):
+            return "🚫 لم يتم العثور على بياناتك كسائق لدينا."
+        deleted = delete_driver_by_phone(phone_norm)
+        if deleted:
+            return "✅ تم حذفك من قائمة السائقين بنجاح."
+        else:
+            return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
 
     # عرض الخدمات من SERVICES بناءً على إدخال المستخدم إذا أرسل رقم خدمة
     if msg.isdigit() and msg in SERVICES:
