@@ -1,5 +1,5 @@
 import psycopg2
-from dp_utils import PG_CONN_INFO  # استيراد بيانات الاتصال من ملف dp_utils.py
+from db_utils import PG_CONN_INFO  # استيراد بيانات الاتصال من ملف db_utils.py
 
 def create_drivers_table_pg():
     conn = psycopg2.connect(**PG_CONN_INFO)
