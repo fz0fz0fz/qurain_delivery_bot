@@ -45,6 +45,16 @@ def handle_driver_registration(user_id, message):
     add_driver(name.strip(), phone_from_sender, user_id)
     return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name.strip()}\nالرقم: {phone_from_sender}"
 
+def delete_driver_by_phone(phone):
+    conn = psycopg2.connect(**PG_CONN_INFO)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM drivers WHERE phone = %s", (phone,))
+    deleted = cur.rowcount
+    conn.commit()
+    cur.close()
+    conn.close()
+    return deleted > 0
+
 def get_all_drivers():
     conn = psycopg2.connect(**PG_CONN_INFO)
     cur = conn.cursor()
