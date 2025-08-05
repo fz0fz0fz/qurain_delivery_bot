@@ -13,3 +13,7 @@ def create_drivers_table_pg():
     conn.commit()
     cur.close()
     conn.close()
+
+if __name__ == "__main__":
+    create_drivers_table_pg()
+    print("تم إنشاء جدول السائقين في PostgreSQL بنجاح.")
