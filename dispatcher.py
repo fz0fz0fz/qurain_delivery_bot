@@ -251,6 +251,11 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response: return response
 
+    # --- هذا هو الإضافة الهامة ---
+    if msg == "14" or msg in ["نقل", "مشاوير"]:
+        return create_drivers_message()
+    # ----------------------------
+
     # عرض الخدمات من SERVICES بناءً على إدخال المستخدم إذا أرسل رقم خدمة
     if msg.isdigit() and msg in SERVICES:
         service_id = msg
