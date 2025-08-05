@@ -1,6 +1,15 @@
 import sqlite3
 from datetime import datetime
 
+# بيانات الاتصال بقاعدة بيانات PostgreSQL (للاستخدام لاحقاً في دوال PostgreSQL)
+PG_CONN_INFO = {
+    "host": "dpg-d1qf0g24d50c7397llc0-a.oregon-postgres.render.com",
+    "dbname": "remainders",
+    "user": "remainders_user",
+    "password": "c6G6dvxL4Y0PRZtNaZiP0mh2R5QVA0nr",
+    "port": 5432,
+}
+
 DB_PATH = "orders.db"
 
 def init_db():
