@@ -289,7 +289,7 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     # -------- نهاية منطق النقل المدرسي وتسجيل السائقين --------
 
     # -------- منطق حذف السائق --------
-    if msg in ["حذف سائق", "89"]:
+        if msg in ["حذف سائق", "89"]:
         phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
         from driver_register import delete_driver_by_phone, driver_exists
         if not driver_exists(phone):
