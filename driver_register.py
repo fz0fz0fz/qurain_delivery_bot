@@ -45,6 +45,11 @@ def handle_driver_registration(user_id, message):
     add_driver(name.strip(), phone_from_sender, user_id)
     return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name.strip()}\nالرقم: {phone_from_sender}"
 
-# مثال للاستخدام في نقطة استقبال الرسائل:
-# response = handle_driver_registration(user_id, message)
-# إذا كانت response ليست None أرسلها للعميل ولاتكمل باقي المنطق
+def get_all_drivers():
+    conn = psycopg2.connect(**PG_CONN_INFO)
+    cur = conn.cursor()
+    cur.execute("SELECT name, phone FROM drivers ORDER BY created_at DESC")
+    drivers = cur.fetchall()
+    cur.close()
+    conn.close()
+    return drivers
