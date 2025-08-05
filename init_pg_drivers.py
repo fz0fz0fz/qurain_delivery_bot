@@ -1,3 +1,5 @@
+import psycopg2
+
 def create_drivers_table_pg():
     conn = psycopg2.connect(**PG_CONN_INFO)
     cur = conn.cursor()
