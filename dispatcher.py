@@ -259,7 +259,7 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
 
     if msg == "88" and user_states.get(user_id) == "awaiting_driver_register":
         user_states[user_id] = "awaiting_driver_name"
-        return "🚗 أرسل اسمك الثلاثي للتسجيل كسائق:"
+        return "🚗 أرسل اسمك للتسجيل كسائق:"
 
     if user_states.get(user_id) == "awaiting_driver_name":
         user_states[user_id] = "awaiting_driver_phone"
@@ -267,29 +267,29 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         return "📞 أرسل رقم جوالك (مثال: 9665xxxxxxxx):"
 
     if user_states.get(user_id) == "awaiting_driver_phone":
-    name = user_states.get(f"{user_id}_driver_name", "")
-    phone_input = msg.strip()
-    phone_real = user_id.split("@")[0] if "@c.us" in user_id else user_id
+        name = user_states.get(f"{user_id}_driver_name", "")
+        phone_input = msg.strip()
+        phone_real = user_id.split("@")[0] if "@c.us" in user_id else user_id
 
-    # تحقق أن الرقم المدخل هو نفسه رقم المستخدم
-    if not (phone_input == phone_real or phone_input.endswith(phone_real) or phone_real.endswith(phone_input)):
+        # تحقق أن الرقم المدخل هو نفسه رقم المستخدم
+        if not (phone_input == phone_real or phone_input.endswith(phone_real) or phone_real.endswith(phone_input)):
+            user_states.pop(user_id, None)
+            user_states.pop(f"{user_id}_driver_name", None)
+            return f"🚫 يجب أن تسجل برقم جوالك المرتبط بالواتساب: {phone_real}"
+
+        from driver_register import driver_exists, add_driver
+        if driver_exists(phone_real):
+            user_states.pop(user_id, None)
+            user_states.pop(f"{user_id}_driver_name", None)
+            return "✅ أنت مسجل مسبقاً كسائق لدينا."
+        add_driver(name, phone_real, user_id)
         user_states.pop(user_id, None)
         user_states.pop(f"{user_id}_driver_name", None)
-        return f"🚫 يجب أن تسجل برقم جوالك المرتبط بالواتساب: {phone_real}"
-
-    from driver_register import driver_exists, add_driver
-    if driver_exists(phone_real):
-        user_states.pop(user_id, None)
-        user_states.pop(f"{user_id}_driver_name", None)
-        return "✅ أنت مسجل مسبقاً كسائق لدينا."
-    add_driver(name, phone_real, user_id)
-    user_states.pop(user_id, None)
-    user_states.pop(f"{user_id}_driver_name", None)
-    return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone_real}"
+        return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone_real}"
     # -------- نهاية منطق النقل المدرسي وتسجيل السائقين --------
 
     # -------- منطق حذف السائق --------
-        if msg in ["حذف سائق", "89"]:
+    if msg in ["حذف سائق", "89"]:
         phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
         from driver_register import delete_driver_by_phone, driver_exists
         if not driver_exists(phone):
