@@ -34,8 +34,22 @@ def driver_exists(phone: str) -> bool:
 def handle_driver_number_deletion(phone_input: str) -> str:
     """
     يحذف سائق بناءً على رقم يُعطى بأي صيغة (دولي أو محلي).
-    يبحث عن الرقم في جميع الصيغ الشائعة ويحذفه إذا وُجد.
+    يبحث عن الرقم في جميع الصيغ الشائعة، ويطبع قائمة السائقين في اللوق.
     """
+    # --- اطبع كل الأرقام الموجودة في قاعدة البيانات ---
+    try:
+        with psycopg2.connect(**PG_CONN_INFO) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id, name, phone FROM drivers ORDER BY id DESC")
+                rows = cur.fetchall()
+                print("=== قائمة السائقين في قاعدة البيانات ===")
+                for row in rows:
+                    print(f"id={row[0]}, name={row[1]}, phone={row[2]}")
+                print("=== نهاية القائمة ===")
+    except Exception as e:
+        print(f"Error printing drivers: {e}")
+    # --- نهاية الطباعة ---
+
     candidates = set()
     phone = str(phone_input).strip().replace(" ", "").replace("-", "").replace("_", "")
 
@@ -76,8 +90,13 @@ def handle_driver_number_deletion(phone_input: str) -> str:
         with psycopg2.connect(**PG_CONN_INFO) as conn:
             with conn.cursor() as cur:
                 for candidate in candidates:
+                    print(f"Trying candidate: {candidate}")  # تطبع كل صيغة يجربها الكود
                     cur.execute("SELECT id FROM drivers WHERE phone = %s", (candidate,))
                     row = cur.fetchone()
+                    if not row and len(candidate) >= 8:
+                        # fallback: بحث جزئي (آخر 8 أرقام على الأقل)
+                        cur.execute("SELECT id FROM drivers WHERE phone LIKE %s", ('%' + candidate[-8:],))
+                        row = cur.fetchone()
                     if row:
                         driver_id = row[0]
                         cur.execute("DELETE FROM drivers WHERE id = %s", (driver_id,))
