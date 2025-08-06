@@ -1,10 +1,10 @@
 import psycopg2
 
 PG_CONN_INFO = {
-    "host": "اسم_المضيف.render.com",
-    "dbname": "اسم_قاعدة_البيانات",
-    "user": "اسم_المستخدم",
-    "password": "كلمة_المرور",
+    "host": "dpg-d1qf0g24d50c7397llc0-a.oregon-postgres.render.com",
+    "dbname": "remainders",
+    "user": "remainders_user",
+    "password": "c6G6dvxL4Y0PRZtNaZiP0mh2R5QVA0nr",
     "port": 5432
 }
 
