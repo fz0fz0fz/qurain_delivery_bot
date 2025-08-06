@@ -112,17 +112,17 @@ def handle_driver_number_deletion(phone_input: str) -> str:
     else:
         return "🚫 لم يتم العثور على السائق بهذا الرقم."
 
-def add_driver(name: str, phone: str, user_id: str) -> None:
+def add_driver(name: str, phone: str, user_id: str, description: str = "") -> None:
     """Add a new driver, if not exists."""
     phone = normalize_phone(phone)
     try:
         with psycopg2.connect(**PG_CONN_INFO) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO drivers (name, phone, user_id)
-                    VALUES (%s, %s, %s)
+                    INSERT INTO drivers (name, phone, user_id, description)
+                    VALUES (%s, %s, %s, %s)
                     ON CONFLICT (phone) DO NOTHING
-                """, (name, phone, user_id))
+                """, (name, phone, user_id, description))
                 conn.commit()
     except Exception as e:
         print(f"Error in add_driver: {e}")
