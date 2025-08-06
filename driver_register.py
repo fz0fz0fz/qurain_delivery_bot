@@ -3,7 +3,10 @@ import psycopg2
 from db_utils import PG_CONN_INFO
 
 def normalize_phone(phone: str) -> str:
-    """Normalize phone numbers to the 9665xxxxxxxx format."""
+    """
+    Normalize phone numbers to 9665xxxxxxxx format.
+    Supports: 05xxxxxxxx, +9665xxxxxxxx, 9665xxxxxxxx, 5xxxxxxxx, 009665xxxxxxxx
+    """
     phone = str(phone).strip()
     phone = phone.replace(" ", "").replace("-", "").replace("_", "")
     if phone.startswith("00"):
@@ -12,59 +15,68 @@ def normalize_phone(phone: str) -> str:
         phone = "966" + phone[4:]
     elif phone.startswith("0"):
         phone = "966" + phone[1:]
+    elif phone.startswith("5") and len(phone) == 9:
+        phone = "966" + phone
     return phone
 
 def driver_exists(phone: str) -> bool:
     """Check if a driver with this phone exists."""
     phone = normalize_phone(phone)
-    conn = psycopg2.connect(**PG_CONN_INFO)
-    cur = conn.cursor()
-    cur.execute("SELECT id FROM drivers WHERE phone = %s", (phone,))
-    exists = cur.fetchone() is not None
-    cur.close()
-    conn.close()
-    return exists
+    try:
+        with psycopg2.connect(**PG_CONN_INFO) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM drivers WHERE phone = %s", (phone,))
+                return cur.fetchone() is not None
+    except Exception as e:
+        print(f"Error in driver_exists: {e}")
+        return False
 
 def add_driver(name: str, phone: str, user_id: str) -> None:
     """Add a new driver, if not exists."""
     phone = normalize_phone(phone)
-    conn = psycopg2.connect(**PG_CONN_INFO)
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO drivers (name, phone, user_id)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (phone) DO NOTHING
-    """, (name, phone, user_id))
-    conn.commit()
-    cur.close()
-    conn.close()
+    try:
+        with psycopg2.connect(**PG_CONN_INFO) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO drivers (name, phone, user_id)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (phone) DO NOTHING
+                """, (name, phone, user_id))
+                conn.commit()
+    except Exception as e:
+        print(f"Error in add_driver: {e}")
 
 def delete_driver_by_user_id(user_id: str) -> (bool, str):
     """Delete a driver by user_id, returns (success, message)."""
     phone = extract_phone_from_user_id(user_id)
     if not driver_exists(phone):
         return False, "🚫 لم يتم العثور على بياناتك كسائق لدينا."
-    conn = psycopg2.connect(**PG_CONN_INFO)
-    cur = conn.cursor()
-    cur.execute("DELETE FROM drivers WHERE phone = %s", (phone,))
-    deleted = cur.rowcount
-    conn.commit()
-    cur.close()
-    conn.close()
-    if deleted:
-        return True, "✅ تم حذفك من قائمة السائقين بنجاح."
-    else:
+    try:
+        with psycopg2.connect(**PG_CONN_INFO) as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM drivers WHERE phone = %s", (phone,))
+                deleted = cur.rowcount
+                conn.commit()
+                if deleted:
+                    return True, "✅ تم حذفك من قائمة السائقين بنجاح."
+                else:
+                    return False, "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
+    except Exception as e:
+        print(f"Error in delete_driver_by_user_id: {e}")
         return False, "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
 
 def get_all_drivers() -> list:
-    """Return a list of all drivers as (name, phone) tuples."""
-    conn = psycopg2.connect(**PG_CONN_INFO)
-    cur = conn.cursor()
-    cur.execute("SELECT name, phone FROM drivers ORDER BY created_at DESC")
-    drivers = cur.fetchall()
-    cur.close()
-    conn.close()
-    return drivers
+    """Return a list of all drivers as (name, phone) tuples, phones normalized."""
+    try:
+        with psycopg2.connect(**PG_CONN_INFO) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT name, phone FROM drivers ORDER BY created_at DESC")
+                drivers = cur.fetchall()
+                # Normalize all phones before returning
+                return [(name, normalize_phone(phone)) for name, phone in drivers]
+    except Exception as e:
+        print(f"Error in get_all_drivers: {e}")
+        return []
 
 def extract_phone_from_user_id(user_id: str) -> str:
     """Helper to extract phone from WhatsApp user_id."""
@@ -121,7 +133,10 @@ def handle_driver_registration(user_id: str, message: str, user_states: dict) ->
         user_states.pop(f"{user_id}_driver_name", None)
         return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone_real}"
     # تسجيل سريع برسالة واحدة
-    match = re.match(r"سائق(?: نقل| مشاوير)?\s*[-:،]?\s*([^\d\-]+)\s*[-:،]\s*(\d+)", message)
+    match = re.match(
+        r"سائق(?: نقل| مشاوير)?\s*[-:،]?\s*([^\d\-:،]+)\s*[-:،]\s*([0-9+]+)",
+        message.strip()
+    )
     if match:
         name, phone_in_msg = match.groups()
         phone_from_sender = extract_phone_from_user_id(user_id)
