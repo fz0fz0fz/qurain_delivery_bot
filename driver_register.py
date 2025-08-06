@@ -185,17 +185,18 @@ def handle_driver_registration(user_id: str, message: str, user_states: dict) ->
     """
     Handles the driver registration flow.
     Usage: message from user, user_states dict, returns response or None.
+    الآن التسجيل ثلاث خطوات: الاسم -> الرقم -> وصف الخدمة
     """
-    # Step 1: Start registration
+    # بدء التسجيل
     if message.strip() in ["سائق", "سائق نقل", "سائق مشاوير"]:
         user_states[user_id] = "awaiting_driver_name"
         return "🚗 أرسل اسمك للتسجيل كسائق:"
-    # Step 2: Receive Name
+    # الخطوة الثانية: الاسم
     if user_states.get(user_id) == "awaiting_driver_name":
         user_states[f"{user_id}_driver_name"] = message.strip()
         user_states[user_id] = "awaiting_driver_phone"
         return "📞 أرسل رقم جوالك (مثال: 9665xxxxxxxx):"
-    # Step 3: Receive Phone
+    # الخطوة الثالثة: الرقم
     if user_states.get(user_id) == "awaiting_driver_phone":
         name = user_states.get(f"{user_id}_driver_name", "")
         phone_input = message.strip()
@@ -209,11 +210,24 @@ def handle_driver_registration(user_id: str, message: str, user_states: dict) ->
             user_states.pop(user_id, None)
             user_states.pop(f"{user_id}_driver_name", None)
             return "✅ أنت مسجل مسبقاً كسائق لدينا."
-        add_driver(name, phone_real, user_id)
+        user_states[f"{user_id}_driver_phone"] = phone_real
+        user_states[user_id] = "awaiting_driver_description"
+        return (
+            "📝 أرسل وصف خدمتك (مثال: نقل من القرين لمدرسة (كذا) أو لكلية (كذا)):"
+        )
+    # الخطوة الرابعة: وصف الخدمة
+    if user_states.get(user_id) == "awaiting_driver_description":
+        name = user_states.get(f"{user_id}_driver_name", "")
+        phone = user_states.get(f"{user_id}_driver_phone", "")
+        desc = message.strip()
+        add_driver(name, phone, user_id, desc)
         user_states.pop(user_id, None)
         user_states.pop(f"{user_id}_driver_name", None)
-        return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone_real}"
-    # تسجيل سريع برسالة واحدة
+        user_states.pop(f"{user_id}_driver_phone", None)
+        return (
+            f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone}\nالوصف: {desc}"
+        )
+    # تسجيل سريع برسالة واحدة (لن ندعم الوصف هنا، إلا إذا أردت)
     match = re.match(
         r"سائق(?: نقل| مشاوير)?\s*[-:،]?\s*([^\d\-:،]+)\s*[-:،]\s*([0-9+]+)",
         message.strip()
@@ -226,7 +240,8 @@ def handle_driver_registration(user_id: str, message: str, user_states: dict) ->
             return "❌ رقم الهاتف في الرسالة لا يطابق رقمك في واتساب. الرجاء التأكد من إرسال رقمك الصحيح."
         if driver_exists(phone_from_sender):
             return "✅ أنت مسجل مسبقًا كسائق لدينا."
-        add_driver(name.strip(), phone_from_sender, user_id)
+        # لا يوجد وصف في التسجيل السريع
+        add_driver(name.strip(), phone_from_sender, user_id, "")
         return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name.strip()}\nالرقم: {phone_from_sender}"
     return None
 
