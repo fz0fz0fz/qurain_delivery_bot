@@ -147,14 +147,13 @@ def delete_driver_by_user_id(user_id: str) -> (bool, str):
         return False, "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
 
 def get_all_drivers() -> list:
-    """Return a list of all drivers as (name, phone) tuples, phones normalized."""
+    """Return a list of all drivers as (name, phone, desc) tuples, phones normalized."""
     try:
         with psycopg2.connect(**PG_CONN_INFO) as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT name, phone FROM drivers ORDER BY created_at DESC")
+                cur.execute("SELECT name, phone, description FROM drivers ORDER BY created_at DESC")
                 drivers = cur.fetchall()
-                # Normalize all phones before returning
-                return [(name, normalize_phone(phone)) for name, phone in drivers]
+                return [(name, normalize_phone(phone), desc or "") for name, phone, desc in drivers]
     except Exception as e:
         print(f"Error in get_all_drivers: {e}")
         return []
@@ -169,7 +168,10 @@ def create_drivers_message() -> str:
     if not drivers:
         drivers_list = "لا يوجد سائقين مسجلين حالياً."
     else:
-        drivers_list = "\n".join([f"{name} - {phone}" for name, phone in drivers])
+        drivers_list = "\n".join([
+            f"{name} - {phone}\n{desc}" if desc else f"{name} - {phone}"
+            for name, phone, desc in drivers
+        ])
     msg = (
         "🚕 *خدمة النقل المدرسي والمشاوير*\n"
         "إذا أردت التسجيل كسائق في خدمة النقل، أرسل: *سائق - اسمك - رقمك*\n"
