@@ -270,7 +270,6 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         name = user_states.get(f"{user_id}_driver_name", "")
         phone_input = msg.strip()
         phone_real = user_id.split("@")[0] if "@c.us" in user_id else user_id
-        # تطبيع الرقمين
         from driver_register import normalize_phone, driver_exists, add_driver
         phone_input_norm = normalize_phone(phone_input)
         phone_real_norm = normalize_phone(phone_real)
@@ -304,7 +303,6 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     if msg.isdigit() and msg in SERVICES:
         service_id = msg
         service_data = SERVICES[service_id]
-        # إذا يوجد display_msg أرسله، وإلا أرسل القديم
         if "display_msg" in service_data:
             return service_data["display_msg"]
         else:
