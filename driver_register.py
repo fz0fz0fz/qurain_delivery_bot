@@ -2,7 +2,22 @@ import re
 import psycopg2
 from db_utils import PG_CONN_INFO
 
+def normalize_phone(phone):
+    phone = str(phone).strip()
+    phone = phone.replace(" ", "").replace("-", "").replace("_", "")
+    # لو يبدأ بـ 00، حولها لـ 966
+    if phone.startswith("00"):
+        phone = "966" + phone[2:]
+    # لو يبدأ بـ 0، حولها لـ 966 (مثل 0501234567 -> 966501234567)
+    elif phone.startswith("0"):
+        phone = "966" + phone[1:]
+    # لو يبدأ بـ +966
+    elif phone.startswith("+966"):
+        phone = "966" + phone[4:]
+    return phone
+
 def driver_exists(phone):
+    phone = normalize_phone(phone)
     conn = psycopg2.connect(**PG_CONN_INFO)
     cur = conn.cursor()
     cur.execute("SELECT id FROM drivers WHERE phone = %s", (phone,))
@@ -12,6 +27,7 @@ def driver_exists(phone):
     return exists
 
 def add_driver(name, phone, user_id):
+    phone = normalize_phone(phone)
     conn = psycopg2.connect(**PG_CONN_INFO)
     cur = conn.cursor()
     cur.execute("""
@@ -36,16 +52,20 @@ def handle_driver_registration(user_id, message):
     name, phone_in_msg = match.groups()
     phone_from_sender = user_id.split("@")[0] if "@c.us" in user_id else user_id
 
-    if phone_in_msg != phone_from_sender:
+    phone_in_msg_norm = normalize_phone(phone_in_msg)
+    phone_from_sender_norm = normalize_phone(phone_from_sender)
+
+    if phone_in_msg_norm != phone_from_sender_norm:
         return "❌ رقم الهاتف في الرسالة لا يطابق رقمك في واتساب. الرجاء التأكد من إرسال رقمك الصحيح."
 
-    if driver_exists(phone_from_sender):
+    if driver_exists(phone_from_sender_norm):
         return "✅ أنت مسجل مسبقًا كسائق لدينا."
 
-    add_driver(name.strip(), phone_from_sender, user_id)
-    return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name.strip()}\nالرقم: {phone_from_sender}"
+    add_driver(name.strip(), phone_from_sender_norm, user_id)
+    return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name.strip()}\nالرقم: {phone_from_sender_norm}"
 
 def delete_driver_by_phone(phone):
+    phone = normalize_phone(phone)
     conn = psycopg2.connect(**PG_CONN_INFO)
     cur = conn.cursor()
     cur.execute("DELETE FROM drivers WHERE phone = %s", (phone,))
