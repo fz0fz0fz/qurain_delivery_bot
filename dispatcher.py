@@ -236,18 +236,17 @@ def format_search_results(results):
 def dispatch_message(user_id, message, user_states, user_orders, driver_id=None, latitude=None, longitude=None):
     msg = message.strip()
 
-    # منطق حذف السائق في الأعلى ليعمل دائمًا
+    # منطق حذف السائق الجديد: يطلب رقم السائق ثم يحذفه
     if msg in ["حذف سائق", "89", "٨٩"]:
-        phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
-        from driver_register import normalize_phone, delete_driver_by_phone, driver_exists
-        phone_norm = normalize_phone(phone)
-        if not driver_exists(phone_norm):
-            return "🚫 لم يتم العثور على بياناتك كسائق لدينا."
-        deleted = delete_driver_by_phone(phone_norm)
-        if deleted:
-            return "✅ تم حذفك من قائمة السائقين بنجاح."
-        else:
-            return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
+        user_states[user_id] = "awaiting_driver_delete_number"
+        return "📞 أرسل رقم السائق المراد حذفه (يمكنك كتابته بأي صيغة: 9665..., 05..., 5...):"
+
+    # إذا المستخدم في انتظار إدخال رقم لحذفه
+    if user_states.get(user_id) == "awaiting_driver_delete_number":
+        from driver_register import handle_driver_number_deletion
+        result = handle_driver_number_deletion(msg)
+        user_states.pop(user_id, None)
+        return result
 
     if msg in ["99", "٩٩"]:
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
