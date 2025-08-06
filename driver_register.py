@@ -34,34 +34,56 @@ def driver_exists(phone: str) -> bool:
 def handle_driver_number_deletion(phone_input: str) -> str:
     """
     يحذف سائق بناءً على رقم يُعطى بأي صيغة (دولي أو محلي).
-    يبحث عن الرقم بصيغ مختلفة ويحذفه إذا وُجد.
+    يبحث عن الرقم في جميع الصيغ الشائعة ويحذفه إذا وُجد.
     """
-    phone_norm = normalize_phone(phone_input)
-    phone_alt = None
-    # لو الرقم يبدأ بـ966 أو 05 أو 5 فقط
-    if phone_norm.startswith("966"):
-        phone_alt = phone_norm[3:]  # بدون 966
-    elif phone_norm.startswith("5") and len(phone_norm) == 9:
-        phone_alt = "966" + phone_norm
-    elif phone_norm.startswith("0") and len(phone_norm) == 10:
-        phone_alt = "966" + phone_norm[1:]
+    candidates = set()
+    phone = str(phone_input).strip().replace(" ", "").replace("-", "").replace("_", "")
+
+    # أضف كل الصيغ الممكنة للبحث
+    if phone.startswith("00"):
+        phone_966 = "966" + phone[2:]
+        candidates.add(phone_966)
+        candidates.add(phone_966[3:])  # بدون 966
+    elif phone.startswith("+966"):
+        phone_966 = "966" + phone[4:]
+        candidates.add(phone_966)
+        candidates.add(phone_966[3:])
+    elif phone.startswith("966"):
+        candidates.add(phone)
+        candidates.add(phone[3:])
+        if len(phone) >= 12 and phone[3] == "0":
+            candidates.add("0" + phone[4:])
+    elif phone.startswith("0"):
+        candidates.add("966" + phone[1:])
+        candidates.add(phone)
+        if len(phone) >= 10 and phone[1] == "5":
+            candidates.add(phone[1:])  # 5xxxxxxxx
+    elif phone.startswith("5") and len(phone) == 9:
+        candidates.add("966" + phone)
+        candidates.add("05" + phone)
+        candidates.add(phone)
+    else:
+        # fallback: جرّب الرقم نفسه + بدون أول رقم + مع 966
+        candidates.add(phone)
+        if phone.startswith("5"):
+            candidates.add("966" + phone)
+            candidates.add("05" + phone)
+        elif phone.startswith("05"):
+            candidates.add("966" + phone[1:])
 
     found = False
     try:
         with psycopg2.connect(**PG_CONN_INFO) as conn:
             with conn.cursor() as cur:
-                # ابحث عن الرقم العادي
-                cur.execute("SELECT id FROM drivers WHERE phone = %s", (phone_norm,))
-                row = cur.fetchone()
-                if not row and phone_alt:
-                    # ابحث عن الصيغة البديلة
-                    cur.execute("SELECT id FROM drivers WHERE phone = %s", (phone_alt,))
+                for candidate in candidates:
+                    cur.execute("SELECT id FROM drivers WHERE phone = %s", (candidate,))
                     row = cur.fetchone()
-                if row:
-                    driver_id = row[0]
-                    cur.execute("DELETE FROM drivers WHERE id = %s", (driver_id,))
-                    conn.commit()
-                    found = True
+                    if row:
+                        driver_id = row[0]
+                        cur.execute("DELETE FROM drivers WHERE id = %s", (driver_id,))
+                        conn.commit()
+                        found = True
+                        break
     except Exception as e:
         print(f"Error in handle_driver_number_deletion: {e}")
         return "🚫 حدث خطأ أثناء حذف السائق، حاول مرة أخرى لاحقًا."
@@ -70,6 +92,7 @@ def handle_driver_number_deletion(phone_input: str) -> str:
         return "✅ تم حذف السائق بنجاح."
     else:
         return "🚫 لم يتم العثور على السائق بهذا الرقم."
+
 def add_driver(name: str, phone: str, user_id: str) -> None:
     """Add a new driver, if not exists."""
     phone = normalize_phone(phone)
