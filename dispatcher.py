@@ -7,14 +7,6 @@ import re
 from search_utils import search_services_arabic
 from services_data import SERVICES
 
-def dispatch_message(user_id, msg, user_states, user_orders, driver_id=None, latitude=None, longitude=None):
-    response = handle_driver_service(user_id, msg, user_states)
-    if response:
-        return response
-    # أكمل بقية الكود هنا
-
-
-
 allowed_service_ids = {
     "1": "حكومي",
     "2": "صيدلية",
@@ -49,16 +41,14 @@ main_menu_text = (
     "10. شيول ومواد بناء 🧱\n"
     "11. عمال 👷\n"
     "12. محلات مهنية 🔨\n"
-    "13. ذبائح وملاحم 🥩\n"
-    "14. نقل مدرسي ومشاوير 🚍\n"
+    "13. ذبائح وملاحم 🥩\n14. نقل مدرسي ومشاوير 🚍\n"
     "15. تأجير 📦\n"
     "━━━━━━━━━━━━━━━\n"
     "✉️ *للاقتراحات:* أرسل `100`\n"
     "━━━━━━━━━━━━━━━"
 )
 
-def save_order_driver(order_number, driver_id):
-    conn = sqlite3.connect('orders.db')
+def save_order_driver(order_number, driver.db')
     c = conn.cursor()
     c.execute("INSERT OR REPLACE INTO order_drivers (order_number, driver_id) VALUES (?, ?)", (order_number, driver_id))
     conn.commit()
@@ -66,8 +56,7 @@ def save_order_driver(order_number, driver_id):
 
 def get_driver_by_order(order_number):
     conn = sqlite3.connect('orders.db')
-    c = conn.cursor()
-    c.execute("SELECT driver_id FROM order_drivers WHERE order_number = ? LIMIT 1", (order_number,))
+    c driver_id FROM order_drivers WHERE order_number = ? LIMIT 1", (order_number,))
     row = c.fetchone()
     conn.close()
     if row:
@@ -109,15 +98,14 @@ def get_user_id_by_order_number(order_number):
     return None
 
 def handle_main_menu(message):
-    if message.strip() in ["0", ".", "٠", "خدمات"]:
+ in ["0", ".", "٠", "خدمات"]:
         return main_menu_text
     return None
 
 def handle_feedback(user_id, message, user_states):
     if message.strip() == "100":
         user_states[user_id] = "awaiting_feedback"
-        return "✉️ أرسل الآن رسالتك (اقتراح أو شكوى)"
-    elif user_states.get(user_id) == "awaiting_feedback":
+        return "✉️ أرسل الآن رسالتك ( "awaiting_feedback":
         user_states.pop(user_id, None)
         send_message("966503813344", f"💬 شكوى من {user_id}:\n{message}")
         return "✅ تم استلام رسالتك، شكرًا لك."
@@ -245,32 +233,22 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response: return response
 
-    # معالجة منطق النقل المدرسي والمشاوير والسائقين
+    # معالجة منطق النقل المدرسي والمشاوير والسائقين (مع حالة الحذف المضافة)
     if (
         msg == "14"
         or user_states.get(user_id) == "awaiting_driver_register"
         or msg == "88"
         or msg.startswith("سائق")
-        or user_states.get(user_id) in ["awaiting_driver_name", "awaiting_driver_phone", "awaiting_driver_description"]
+        or user_states.get(user_id) in [
+            "awaiting_driver_name",
+            "awaiting_driver_phone",
+            "awaiting_driver_description",
+            "awaiting_driver_delete_number"   # أضف هذه الحالة هنا فقط
+        ]
     ):
         response = handle_driver_service(user_id, msg, user_states)
         if response:
             return response
-if (
-    msg == "14"
-    or user_states.get(user_id) == "awaiting_driver_register"
-    or msg == "88"
-    or msg.startswith("سائق")
-    or user_states.get(user_id) in [
-        "awaiting_driver_name",
-        "awaiting_driver_phone",
-        "awaiting_driver_description",
-        "awaiting_driver_delete_number"   # أضف هذا السطر
-    ]
-):
-    response = handle_driver_service(user_id, msg, user_states)
-    if response:
-        return response
 
     # الخدمات الأخرى من SERVICES (باستثناء 14)
     if msg.isdigit() and msg in SERVICES and msg != "14":
