@@ -256,6 +256,21 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         response = handle_driver_service(user_id, msg, user_states)
         if response:
             return response
+if (
+    msg == "14"
+    or user_states.get(user_id) == "awaiting_driver_register"
+    or msg == "88"
+    or msg.startswith("سائق")
+    or user_states.get(user_id) in [
+        "awaiting_driver_name",
+        "awaiting_driver_phone",
+        "awaiting_driver_description",
+        "awaiting_driver_delete_number"   # أضف هذا السطر
+    ]
+):
+    response = handle_driver_service(user_id, msg, user_states)
+    if response:
+        return response
 
     # الخدمات الأخرى من SERVICES (باستثناء 14)
     if msg.isdigit() and msg in SERVICES and msg != "14":
