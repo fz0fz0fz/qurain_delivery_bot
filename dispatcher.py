@@ -8,22 +8,7 @@ from search_utils import search_services_arabic
 from services_data import SERVICES
 from driver_register import get_all_drivers
 from driver_register import create_drivers_message
-def create_drivers_message():
-    drivers = get_all_drivers()
-    if not drivers:
-        drivers_list = "لا يوجد سائقين مسجلين حالياً."
-    else:
-        drivers_list = "\n".join([f"{name} - {phone}\n{desc}" if desc else f"{name} - {phone}" for name, phone, desc in drivers])
-    msg = (
-        "🚕 *خدمة النقل المدرسي والمشاوير*\n"
-        "إذا أردت التسجيل كسائق في خدمة النقل، أرسل: *سائق - اسمك - رقمك*\n"
-        "مثال: سائق - أحمد - 966512345678\n"
-        "━━━━━━━━━━━━━━━\n"
-        "*قائمة السائقين المتاحين:*\n"
-        f"{drivers_list}\n"
-        "━━━━━━━━━━━━━━━"
-    )
-    return msg
+
 
 allowed_service_ids = {
     "1": "حكومي",
