@@ -15,21 +15,18 @@ def handle_driver_service(user_id, msg, user_states):
         if response:
             return response
 
-    # منطق حذف السائق برقم الجوال (يمكنك ربطه بأمر معين)
-    # مثال: إذا تريد حذف سائق ترسل "حذف سائق"
+    # منطق حذف السائق برقم الجوال أو المعرف الشخصي
     if msg in ["حذف سائق", "89", "٨٩"]:
         user_states[user_id] = "awaiting_driver_delete_number"
         return "📞 أرسل رقم السائق المراد حذفه (يمكنك كتابته بأي صيغة: 9665..., 05..., 5...):"
 
-    # استقبال رقم السائق للحذف
     if user_states.get(user_id) == "awaiting_driver_delete_number":
-        result = handle_driver_number_deletion(msg)
+        result = handle_driver_number_deletion(msg, user_id)
         user_states.pop(user_id, None)
         return result
 
-    # حذف السائق بناء على معرف المستخدم
     if msg in ["حذف بياناتي كسائق", "حذفني"]:
-        return handle_driver_deletion(user_id)
+        return delete_driver(user_id)
 
     return None
 
@@ -189,6 +186,13 @@ def delete_driver(user_id: str, phone_input: str = None) -> str:
         except Exception as e:
             print(f"Error in delete_driver (by phone): {e}")
             return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
+
+def handle_driver_number_deletion(phone_input, user_id):
+    """
+    منطق استقبال رقم السائق للحذف، يستدعي منطق الحذف الموحد.
+    """
+    return delete_driver(user_id, phone_input)
+
 def get_all_drivers() -> list:
     """إرجاع قائمة كل السائقين (اسم - رقم - وصف)."""
     try:
