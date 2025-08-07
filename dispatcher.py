@@ -226,8 +226,7 @@ def format_search_results(results):
 def dispatch_message(user_id, message, user_states, user_orders, driver_id=None, latitude=None, longitude=None):
     msg = message.strip()
 
-    
-
+    # الحالات الخاصة أولاً
     if msg in ["99", "٩٩"]:
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
             return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
@@ -245,8 +244,14 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response: return response
 
-    # عرض الخدمات من SERVICES بناءً على إدخال المستخدم إذا أرسل رقم خدمة
-    if msg.isdigit() and msg in SERVICES:
+    # معالجة رقم 14 حصريًا عبر ملف السائقين
+    if msg == "14":
+        response = handle_driver_service(user_id, msg, user_states)
+        if response:
+            return response
+
+    # الخدمات الأخرى من SERVICES (باستثناء 14)
+    if msg.isdigit() and msg in SERVICES and msg != "14":
         service_id = msg
         service_data = SERVICES[service_id]
         if "display_msg" in service_data:
