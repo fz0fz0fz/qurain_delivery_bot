@@ -265,40 +265,7 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response: return response
 
-    # -------- البداية منطق النقل المدرسي وتسجيل السائقين --------
-    if msg == "14" or msg in ["نقل", "مشاوير"]:
-        user_states[user_id] = "awaiting_driver_register"
-        return create_drivers_message() + "\n\n🚗 إذا أردت التسجيل كسائق أرسل: 88"
-
-    if msg == "88" and user_states.get(user_id) == "awaiting_driver_register":
-        user_states[user_id] = "awaiting_driver_name"
-        return "🚗 أرسل اسمك للتسجيل كسائق:"
-
-    if user_states.get(user_id) == "awaiting_driver_name":
-        user_states[user_id] = "awaiting_driver_phone"
-        user_states[f"{user_id}_driver_name"] = msg
-        return "📞 أرسل رقم جوالك (مثال: 9665xxxxxxxx):"
-
-    if user_states.get(user_id) == "awaiting_driver_phone":
-        name = user_states.get(f"{user_id}_driver_name", "")
-        phone_input = msg.strip()
-        phone_real = user_id.split("@")[0] if "@c.us" in user_id else user_id
-        from driver_register import normalize_phone, driver_exists, add_driver
-        phone_input_norm = normalize_phone(phone_input)
-        phone_real_norm = normalize_phone(phone_real)
-        if not (phone_input_norm == phone_real_norm):
-            user_states.pop(user_id, None)
-            user_states.pop(f"{user_id}_driver_name", None)
-            return f"🚫 يجب أن تسجل برقم جوالك المرتبط بالواتساب: {phone_real_norm}"
-        if driver_exists(phone_real_norm):
-            user_states.pop(user_id, None)
-            user_states.pop(f"{user_id}_driver_name", None)
-            return "✅ أنت مسجل مسبقاً كسائق لدينا."
-        add_driver(name, phone_real_norm, user_id)
-        user_states.pop(user_id, None)
-        user_states.pop(f"{user_id}_driver_name", None)
-        return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone_real_norm}"
-
+    
     # عرض الخدمات من SERVICES بناءً على إدخال المستخدم إذا أرسل رقم خدمة
     if msg.isdigit() and msg in SERVICES:
         service_id = msg
