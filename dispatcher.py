@@ -1,3 +1,4 @@
+from driver_register import handle_driver_service 
 from pg_utils import generate_order_id_pg
 from send_utils import send_message
 from services.unified_service import handle_service
@@ -6,7 +7,6 @@ import re
 
 from search_utils import search_services_arabic
 from services_data import SERVICES
-from driver_register import handle_driver_service  # فقط هذه الدالة
 
 
 
