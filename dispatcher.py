@@ -244,7 +244,7 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response: return response
 
-    # معالجة رقم 14 حصريًا عبر ملف السائقين
+    # معالجة رقم 14 حصرياً عبر ملف السائقين
     if msg == "14":
         response = handle_driver_service(user_id, msg, user_states)
         if response:
