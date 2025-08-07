@@ -181,7 +181,7 @@ def handle_driver_number_deletion(phone_input: str) -> str:
             candidates.add("966" + phone)
             candidates.add("05" + phone)
         elif phone.startswith("05"):
-            candidates.add("966" + phone) found = False
+            candidates.add("966" + phone) 
     try:
         with psycopg2.connect(**PG_CONN_INFO) as conn:
             with conn.cursor() as cur:
