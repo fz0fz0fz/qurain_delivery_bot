@@ -13,7 +13,7 @@ def create_drivers_message():
     if not drivers:
         drivers_list = "لا يوجد سائقين مسجلين حالياً."
     else:
-        drivers_list = "\n".join([f"{name} - {phone}" for name, phone in drivers])
+        drivers_list = "\n".join([f"{name} - {phone}\n{desc}" if desc else f"{name} - {phone}" for name, phone, desc in drivers])
     msg = (
         "🚕 *خدمة النقل المدرسي والمشاوير*\n"
         "إذا أردت التسجيل كسائق في خدمة النقل، أرسل: *سائق - اسمك - رقمك*\n"
