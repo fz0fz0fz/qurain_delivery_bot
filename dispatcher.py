@@ -10,6 +10,10 @@ from driver_register import get_all_drivers
 from driver_register import create_drivers_message
 
 
+response = handle_driver_service(user_id, msg, user_states)
+if response:
+    return response
+
 allowed_service_ids = {
     "1": "حكومي",
     "2": "صيدلية",
