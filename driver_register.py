@@ -145,91 +145,50 @@ def add_driver(name: str, phone: str, user_id: str, description: str = "") -> No
     except Exception as e:
         print(f"Error in add_driver: {e}")
 
-def handle_driver_number_deletion(phone_input: str) -> str:
+def delete_driver(user_id: str, phone_input: str = None) -> str:
     """
-    حذف سائق بناءً على رقم الجوال بأي صيغة.
-    يبحث عن الرقم في جميع الصيغ الشائعة.
+    حذف سائق. إذا لم يُعطَ رقم، يحذف بيانات المستخدم نفسه.
+    إذا أُعطي رقم، يجب أن يكون مطابق لرقم المستخدم الفعلي (لا يمكن حذف سائق آخر).
     """
-    candidates = set()
-    phone = str(phone_input).strip().replace(" ", "").replace("-", "").replace("_", "")
-
-    if phone.startswith("00"):
-        phone_966 = "966" + phone[2:]
-        candidates.add(phone_966)
-        candidates.add(phone_966[3:])  # بدون 966
-    elif phone.startswith("+966"):
-        phone_966 = "966" + phone[4:]
-        candidates.add(phone_966)
-        candidates.add(phone_966[3:])
-    elif phone.startswith("966"):
-        candidates.add(phone)
-        candidates.add(phone[3:])
-        if len(phone) >= 12 and phone[3] == "0":
-            candidates.add("0" + phone[4:])
-    elif phone.startswith("0"):
-        candidates.add("966" + phone[1:])
-        candidates.add(phone)
-        if len(phone) >= 10 and phone[1] == "5":
-            candidates.add(phone[1:])  # 5xxxxxxxx
-    elif phone.startswith("5") and len(phone) == 9:
-        candidates.add("966" + phone)
-        candidates.add("05" + phone)
-        candidates.add(phone)
+    phone_real = extract_phone_from_user_id(user_id)
+    # إذا لم يُعطَ رقم، احذف بيانات المستخدم نفسه
+    if phone_input is None:
+        if not driver_exists(phone_real):
+            return "🚫 لم يتم العثور على بياناتك كسائق لدينا."
+        try:
+            with psycopg2.connect(**PG_CONN_INFO) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM drivers WHERE phone = %s", (phone_real,))
+                    deleted = cur.rowcount
+                    conn.commit()
+                    if deleted:
+                        return "✅ تم حذفك من قائمة السائقين بنجاح."
+                    else:
+                        return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
+        except Exception as e:
+            print(f"Error in delete_driver (self): {e}")
+            return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
+    # إذا أُعطي رقم، يجب أن يكون مطابق لرقم المستخدم
     else:
-        candidates.add(phone)
-        if phone.startswith("5"):
-            candidates.add("966" + phone)
-            candidates.add("05" + phone)
-        elif phone.startswith("05"):
-            candidates.add("966" + phone) 
-    try:
-        with psycopg2.connect(**PG_CONN_INFO) as conn:
-            with conn.cursor() as cur:
-                for candidate in candidates:
-                    cur.execute("SELECT id FROM drivers WHERE phone = %s", (candidate,))
-                    row = cur.fetchone()
-                    if not row and len(candidate) >= 8:
-                        cur.execute("SELECT id FROM drivers WHERE phone LIKE %s", ('%' + candidate[-8:],))
-                        row = cur.fetchone()
-                    if row:
-                        driver_id = row[0]
-                        cur.execute("DELETE FROM drivers WHERE id = %s", (driver_id,))
-                        conn.commit()
-                        found = True
-                        break
-    except Exception as e:
-        print(f"Error in handle_driver_number_deletion: {e}")
-        return "🚫 حدث خطأ أثناء حذف السائق، حاول مرة أخرى لاحقًا."
-
-    if found:
-        return "✅ تم حذف السائق بنجاح."
-    else:
-        return "🚫 لم يتم العثور على السائق بهذا الرقم."
-
-def handle_driver_deletion(user_id: str) -> str:
-    """حذف السائق بناء على معرف المستخدم."""
-    _, msg = delete_driver_by_user_id(user_id)
-    return msg
-
-def delete_driver_by_user_id(user_id: str) -> (bool, str):
-    """يحذف السائق بناءً على رقم جواله من معرف واتساب."""
-    phone = extract_phone_from_user_id(user_id)
-    if not driver_exists(phone):
-        return False, "🚫 لم يتم العثور على بياناتك كسائق لدينا."
-    try:
-        with psycopg2.connect(**PG_CONN_INFO) as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM drivers WHERE phone = %s", (phone,))
-                deleted = cur.rowcount
-                conn.commit()
-                if deleted:
-                    return True, "✅ تم حذفك من قائمة السائقين بنجاح."
-                else:
-                    return False, "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
-    except Exception as e:
-        print(f"Error in delete_driver_by_user_id: {e}")
-        return False, "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
-
+        phone_input_norm = normalize_phone(phone_input)
+        if phone_input_norm != phone_real:
+            return "🚫 لا يمكنك حذف إلا بياناتك الشخصية فقط، يجب أن يكون الرقم مطابق لرقمك في واتساب."
+        # نفس منطق الحذف أعلاه
+        if not driver_exists(phone_real):
+            return "🚫 لم يتم العثور على بياناتك كسائق لدينا."
+        try:
+            with psycopg2.connect(**PG_CONN_INFO) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM drivers WHERE phone = %s", (phone_real,))
+                    deleted = cur.rowcount
+                    conn.commit()
+                    if deleted:
+                        return "✅ تم حذف بياناتك كسائق بنجاح."
+                    else:
+                        return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
+        except Exception as e:
+            print(f"Error in delete_driver (by phone): {e}")
+            return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
 def get_all_drivers() -> list:
     """إرجاع قائمة كل السائقين (اسم - رقم - وصف)."""
     try:
