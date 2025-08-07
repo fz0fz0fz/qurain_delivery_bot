@@ -3,32 +3,59 @@ import psycopg2
 from db_utils import PG_CONN_INFO
 
 def handle_driver_service(user_id, msg, user_states):
-    # استقبال "14" أو "نقل"/"مشاوير" (تعرض قائمة السائقين وتبدأ التسجيل)
+    # استقبال "14" أو "نقل"/"مشاوير": عرض السائقين وبدء التسجيل
     if msg == "14" or msg in ["نقل", "مشاوير"]:
         user_states[user_id] = "awaiting_driver_register"
         return create_drivers_message() + "\n\n🚗 إذا أردت التسجيل كسائق أرسل: 88"
 
-    # إذا المستخدم في وضع التسجيل أو أرسل أمر التسجيل أو بدأ خطوات التسجيل
-    if user_states.get(user_id) == "awaiting_driver_register" or msg == "88" or msg.startswith("سائق"):
+    # أي خطوة تخص التسجيل أو كان المستخدم في حالة تسجيل
+    if user_states.get(user_id) == "awaiting_driver_register" or msg == "88" or msg.startswith("سائق") \
+       or user_states.get(user_id) in ["awaiting_driver_name", "awaiting_driver_phone", "awaiting_driver_description"]:
         response = handle_driver_registration(user_id, msg, user_states)
         if response:
             return response
 
-    # أي حالات أخرى مرتبطة بالسائقين (حذف، عرض، إلخ)
-    # ... أضف هنا منطق حذف السائق إن أردت
+    # منطق حذف السائق برقم الجوال (يمكنك ربطه بأمر معين)
+    # مثال: إذا تريد حذف سائق ترسل "حذف سائق"
+    if msg in ["حذف سائق", "89", "٨٩"]:
+        user_states[user_id] = "awaiting_driver_delete_number"
+        return "📞 أرسل رقم السائق المراد حذفه (يمكنك كتابته بأي صيغة: 9665..., 05..., 5...):"
+
+    # استقبال رقم السائق للحذف
+    if user_states.get(user_id) == "awaiting_driver_delete_number":
+        result = handle_driver_number_deletion(msg)
+        user_states.pop(user_id, None)
+        return result
+
+    # حذف السائق بناء على معرف المستخدم
+    if msg in ["حذف بياناتي كسائق", "حذفني"]:
+        return handle_driver_deletion(user_id)
 
     return None
+
+def handle_driver_registration(user_id: str, message: str, user_states: dict) -> str or None:
+    """
+    كل حالات التسجيل للسائقين هنا فقط.
+    الاسم -> الرقم -> وصف الخدمة -> تسجيل سريع برسالة واحدة.
+    """
+    # بدء التسجيل
+    if message.strip() in ["سائق", "سائق نقل", "سائق مشاوير", "88"]:
+        user_states[user_id] = "awaiting_driver_name"
+        return "🚗 أرسل اسمك للتسجيل كسائق:"
+
+    # الخطوة الثانية: الاسم
     if user_states.get(user_id) == "awaiting_driver_name":
+        user_states[f"{user_id}_driver_name"] = message.strip()
         user_states[user_id] = "awaiting_driver_phone"
-        user_states[f"{user_id}_driver_name"] = msg
         return "📞 أرسل رقم جوالك (مثال: 9665xxxxxxxx):"
 
+    # الخطوة الثالثة: الرقم
     if user_states.get(user_id) == "awaiting_driver_phone":
         name = user_states.get(f"{user_id}_driver_name", "")
-        phone_input = msg.strip()
+        phone_input = message.strip()
         phone_real = extract_phone_from_user_id(user_id)
         phone_input_norm = normalize_phone(phone_input)
-        if not (phone_input_norm == phone_real):
+        if phone_input_norm != phone_real:
             user_states.pop(user_id, None)
             user_states.pop(f"{user_id}_driver_name", None)
             return f"🚫 يجب أن تسجل برقم جوالك المرتبط بالواتساب: {phone_real}"
@@ -36,21 +63,48 @@ def handle_driver_service(user_id, msg, user_states):
             user_states.pop(user_id, None)
             user_states.pop(f"{user_id}_driver_name", None)
             return "✅ أنت مسجل مسبقاً كسائق لدينا."
-        add_driver(name, phone_real, user_id)
+        user_states[f"{user_id}_driver_phone"] = phone_real
+        user_states[user_id] = "awaiting_driver_description"
+        return (
+            "📝 أرسل وصف خدمتك (مثال: نقل من القرين لمدرسة (كذا) أو لكلية (كذا)):"
+        )
+
+    # الخطوة الرابعة: وصف الخدمة
+    if user_states.get(user_id) == "awaiting_driver_description":
+        name = user_states.get(f"{user_id}_driver_name", "")
+        phone = user_states.get(f"{user_id}_driver_phone", "")
+        desc = message.strip()
+        add_driver(name, phone, user_id, desc)
         user_states.pop(user_id, None)
         user_states.pop(f"{user_id}_driver_name", None)
-        return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone_real}"
+        user_states.pop(f"{user_id}_driver_phone", None)
+        return (
+            f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone}\nالوصف: {desc}"
+        )
 
-    # منطق التسجيل السريع أو الوصف (من دالتك الحالية)
-    response = handle_driver_registration(user_id, msg, user_states)
-    if response:
-        return response
+    # التسجيل السريع (سائق - اسم - رقم)
+    match = re.match(
+        r"سائق(?: نقل| مشاوير)?\s*[-:،]?\s*([^\d\-:،]+)\s*[-:،]\s*([0-9+]+)",
+        message.strip()
+    )
+    if match:
+        name, phone_in_msg = match.groups()
+        phone_from_sender = extract_phone_from_user_id(user_id)
+        phone_in_msg_norm = normalize_phone(phone_in_msg)
+        if phone_in_msg_norm != phone_from_sender:
+            return "❌ رقم الهاتف في الرسالة لا يطابق رقمك في واتساب. الرجاء التأكد من إرسال رقمك الصحيح."
+        if driver_exists(phone_from_sender):
+            return "✅ أنت مسجل مسبقًا كسائق لدينا."
+        # لا يوجد وصف في التسجيل السريع
+        add_driver(name.strip(), phone_from_sender, user_id, "")
+        return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name.strip()}\nالرقم: {phone_from_sender}"
 
     return None
+
 def normalize_phone(phone: str) -> str:
     """
-    Normalize phone numbers to 9665xxxxxxxx format.
-    Supports: 05xxxxxxxx, +9665xxxxxxxx, 9665xxxxxxxx, 5xxxxxxxx, 009665xxxxxxxx
+    تحويل رقم الجوال إلى صيغة 9665xxxxxxxx
+    يدعم: 05xxxxxxxx, +9665xxxxxxxx, 9665xxxxxxxx, 5xxxxxxxx, 009665xxxxxxxx
     """
     phone = str(phone).strip()
     phone = phone.replace(" ", "").replace("-", "").replace("_", "")
@@ -65,7 +119,7 @@ def normalize_phone(phone: str) -> str:
     return phone
 
 def driver_exists(phone: str) -> bool:
-    """Check if a driver with this phone exists."""
+    """يتحقق هل السائق موجود مسبقًا برقم الجوال."""
     phone = normalize_phone(phone)
     try:
         with psycopg2.connect(**PG_CONN_INFO) as conn:
@@ -76,29 +130,29 @@ def driver_exists(phone: str) -> bool:
         print(f"Error in driver_exists: {e}")
         return False
 
-def handle_driver_number_deletion(phone_input: str) -> str:
-    """
-    يحذف سائق بناءً على رقم يُعطى بأي صيغة (دولي أو محلي).
-    يبحث عن الرقم في جميع الصيغ الشائعة، ويطبع قائمة السائقين في اللوق.
-    """
-    # --- اطبع كل الأرقام الموجودة في قاعدة البيانات ---
+def add_driver(name: str, phone: str, user_id: str, description: str = "") -> None:
+    """إضافة سائق جديد إذا لم يكن موجود."""
+    phone = normalize_phone(phone)
     try:
         with psycopg2.connect(**PG_CONN_INFO) as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT id, name, phone FROM drivers ORDER BY id DESC")
-                rows = cur.fetchall()
-                print("=== قائمة السائقين في قاعدة البيانات ===")
-                for row in rows:
-                    print(f"id={row[0]}, name={row[1]}, phone={row[2]}")
-                print("=== نهاية القائمة ===")
+                cur.execute("""
+                    INSERT INTO drivers (name, phone, user_id, description)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (phone) DO NOTHING
+                """, (name, phone, user_id, description))
+                conn.commit()
     except Exception as e:
-        print(f"Error printing drivers: {e}")
-    # --- نهاية الطباعة ---
+        print(f"Error in add_driver: {e}")
 
+def handle_driver_number_deletion(phone_input: str) -> str:
+    """
+    حذف سائق بناءً على رقم الجوال بأي صيغة.
+    يبحث عن الرقم في جميع الصيغ الشائعة.
+    """
     candidates = set()
     phone = str(phone_input).strip().replace(" ", "").replace("-", "").replace("_", "")
 
-    # أضف كل الصيغ الممكنة للبحث
     if phone.startswith("00"):
         phone_966 = "966" + phone[2:]
         candidates.add(phone_966)
@@ -122,24 +176,19 @@ def handle_driver_number_deletion(phone_input: str) -> str:
         candidates.add("05" + phone)
         candidates.add(phone)
     else:
-        # fallback: جرّب الرقم نفسه + بدون أول رقم + مع 966
         candidates.add(phone)
         if phone.startswith("5"):
             candidates.add("966" + phone)
             candidates.add("05" + phone)
         elif phone.startswith("05"):
-            candidates.add("966" + phone[1:])
-
-    found = False
+            candidates.add("966" + phone found = False
     try:
         with psycopg2.connect(**PG_CONN_INFO) as conn:
             with conn.cursor() as cur:
                 for candidate in candidates:
-                    print(f"Trying candidate: {candidate}")  # تطبع كل صيغة يجربها الكود
                     cur.execute("SELECT id FROM drivers WHERE phone = %s", (candidate,))
                     row = cur.fetchone()
                     if not row and len(candidate) >= 8:
-                        # fallback: بحث جزئي (آخر 8 أرقام على الأقل)
                         cur.execute("SELECT id FROM drivers WHERE phone LIKE %s", ('%' + candidate[-8:],))
                         row = cur.fetchone()
                     if row:
@@ -157,23 +206,13 @@ def handle_driver_number_deletion(phone_input: str) -> str:
     else:
         return "🚫 لم يتم العثور على السائق بهذا الرقم."
 
-def add_driver(name: str, phone: str, user_id: str, description: str = "") -> None:
-    """Add a new driver, if not exists."""
-    phone = normalize_phone(phone)
-    try:
-        with psycopg2.connect(**PG_CONN_INFO) as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO drivers (name, phone, user_id, description)
-                    VALUES (%s, %s, %s, %s)
-                    ON CONFLICT (phone) DO NOTHING
-                """, (name, phone, user_id, description))
-                conn.commit()
-    except Exception as e:
-        print(f"Error in add_driver: {e}")
+def handle_driver_deletion(user_id: str) -> str:
+    """حذف السائق بناء على معرف المستخدم."""
+    _, msg = delete_driver_by_user_id(user_id)
+    return msg
 
 def delete_driver_by_user_id(user_id: str) -> (bool, str):
-    """Delete a driver by user_id, returns (success, message)."""
+    """يحذف السائق بناءً على رقم جواله من معرف واتساب."""
     phone = extract_phone_from_user_id(user_id)
     if not driver_exists(phone):
         return False, "🚫 لم يتم العثور على بياناتك كسائق لدينا."
@@ -192,7 +231,7 @@ def delete_driver_by_user_id(user_id: str) -> (bool, str):
         return False, "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
 
 def get_all_drivers() -> list:
-    """Return a list of all drivers as (name, phone, desc) tuples, phones normalized."""
+    """إرجاع قائمة كل السائقين (اسم - رقم - وصف)."""
     try:
         with psycopg2.connect(**PG_CONN_INFO) as conn:
             with conn.cursor() as cur:
@@ -204,11 +243,11 @@ def get_all_drivers() -> list:
         return []
 
 def extract_phone_from_user_id(user_id: str) -> str:
-    """Helper to extract phone from WhatsApp user_id."""
+    """استخراج رقم الجوال من معرف واتساب."""
     return normalize_phone(user_id.split("@")[0] if "@c.us" in user_id else user_id)
 
 def create_drivers_message() -> str:
-    """Return a message with all registered drivers for school transport."""
+    """عرض رسالة بكل السائقين المسجلين للنقل المدرسي."""
     drivers = get_all_drivers()
     if not drivers:
         drivers_list = "لا يوجد سائقين مسجلين حالياً."
@@ -226,73 +265,4 @@ def create_drivers_message() -> str:
         f"{drivers_list}\n"
         "━━━━━━━━━━━━━━━"
     )
-    return msg
-
-def handle_driver_registration(user_id: str, message: str, user_states: dict) -> str or None:
-    """
-    Handles the driver registration flow.
-    Usage: message from user, user_states dict, returns response or None.
-    الآن التسجيل ثلاث خطوات: الاسم -> الرقم -> وصف الخدمة
-    """
-    # بدء التسجيل
-    if message.strip() in ["سائق", "سائق نقل", "سائق مشاوير"]:
-        user_states[user_id] = "awaiting_driver_name"
-        return "🚗 أرسل اسمك للتسجيل كسائق:"
-    # الخطوة الثانية: الاسم
-    if user_states.get(user_id) == "awaiting_driver_name":
-        user_states[f"{user_id}_driver_name"] = message.strip()
-        user_states[user_id] = "awaiting_driver_phone"
-        return "📞 أرسل رقم جوالك (مثال: 9665xxxxxxxx):"
-    # الخطوة الثالثة: الرقم
-    if user_states.get(user_id) == "awaiting_driver_phone":
-        name = user_states.get(f"{user_id}_driver_name", "")
-        phone_input = message.strip()
-        phone_real = extract_phone_from_user_id(user_id)
-        phone_input_norm = normalize_phone(phone_input)
-        if phone_input_norm != phone_real:
-            user_states.pop(user_id, None)
-            user_states.pop(f"{user_id}_driver_name", None)
-            return f"🚫 يجب أن تسجل برقم جوالك المرتبط بالواتساب: {phone_real}"
-        if driver_exists(phone_real):
-            user_states.pop(user_id, None)
-            user_states.pop(f"{user_id}_driver_name", None)
-            return "✅ أنت مسجل مسبقاً كسائق لدينا."
-        user_states[f"{user_id}_driver_phone"] = phone_real
-        user_states[user_id] = "awaiting_driver_description"
-        return (
-            "📝 أرسل وصف خدمتك (مثال: نقل من القرين لمدرسة (كذا) أو لكلية (كذا)):"
-        )
-    # الخطوة الرابعة: وصف الخدمة
-    if user_states.get(user_id) == "awaiting_driver_description":
-        name = user_states.get(f"{user_id}_driver_name", "")
-        phone = user_states.get(f"{user_id}_driver_phone", "")
-        desc = message.strip()
-        add_driver(name, phone, user_id, desc)
-        user_states.pop(user_id, None)
-        user_states.pop(f"{user_id}_driver_name", None)
-        user_states.pop(f"{user_id}_driver_phone", None)
-        return (
-            f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone}\nالوصف: {desc}"
-        )
-    # تسجيل سريع برسالة واحدة (لن ندعم الوصف هنا، إلا إذا أردت)
-    match = re.match(
-        r"سائق(?: نقل| مشاوير)?\s*[-:،]?\s*([^\d\-:،]+)\s*[-:،]\s*([0-9+]+)",
-        message.strip()
-    )
-    if match:
-        name, phone_in_msg = match.groups()
-        phone_from_sender = extract_phone_from_user_id(user_id)
-        phone_in_msg_norm = normalize_phone(phone_in_msg)
-        if phone_in_msg_norm != phone_from_sender:
-            return "❌ رقم الهاتف في الرسالة لا يطابق رقمك في واتساب. الرجاء التأكد من إرسال رقمك الصحيح."
-        if driver_exists(phone_from_sender):
-            return "✅ أنت مسجل مسبقًا كسائق لدينا."
-        # لا يوجد وصف في التسجيل السريع
-        add_driver(name.strip(), phone_from_sender, user_id, "")
-        return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name.strip()}\nالرقم: {phone_from_sender}"
-    return None
-
-def handle_driver_deletion(user_id: str) -> str:
-    """Handles the driver deletion command, returns a response message."""
-    _, msg = delete_driver_by_user_id(user_id)
     return msg
