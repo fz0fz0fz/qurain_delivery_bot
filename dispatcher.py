@@ -222,6 +222,11 @@ def format_search_results(results):
 def dispatch_message(user_id, message, user_states, user_orders, driver_id=None, latitude=None, longitude=None):
     msg = message.strip()
 
+    # منطق النقل المدرسي والسائقين (تسجيل، عرض السائقين، إلخ)
+    response = handle_driver_service(user_id, msg, user_states)
+    if response:
+        return response
+
     # منطق حذف السائق الجديد: يطلب رقم السائق ثم يحذفه
     if msg in ["حذف سائق", "89", "٨٩"]:
         user_states[user_id] = "awaiting_driver_delete_number"
@@ -251,7 +256,6 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response: return response
 
-    
     # عرض الخدمات من SERVICES بناءً على إدخال المستخدم إذا أرسل رقم خدمة
     if msg.isdigit() and msg in SERVICES:
         service_id = msg
