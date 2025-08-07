@@ -3,15 +3,21 @@ import psycopg2
 from db_utils import PG_CONN_INFO
 
 def handle_driver_service(user_id, msg, user_states):
-    # منطق استقبال 14 أو "نقل"/"مشاوير"
+    # استقبال "14" أو "نقل"/"مشاوير" (تعرض قائمة السائقين وتبدأ التسجيل)
     if msg == "14" or msg in ["نقل", "مشاوير"]:
         user_states[user_id] = "awaiting_driver_register"
         return create_drivers_message() + "\n\n🚗 إذا أردت التسجيل كسائق أرسل: 88"
 
-    if msg == "88" and user_states.get(user_id) == "awaiting_driver_register":
-        user_states[user_id] = "awaiting_driver_name"
-        return "🚗 أرسل اسمك للتسجيل كسائق:"
+    # إذا المستخدم في وضع التسجيل أو أرسل أمر التسجيل أو بدأ خطوات التسجيل
+    if user_states.get(user_id) == "awaiting_driver_register" or msg == "88" or msg.startswith("سائق"):
+        response = handle_driver_registration(user_id, msg, user_states)
+        if response:
+            return response
 
+    # أي حالات أخرى مرتبطة بالسائقين (حذف، عرض، إلخ)
+    # ... أضف هنا منطق حذف السائق إن أردت
+
+    return None
     if user_states.get(user_id) == "awaiting_driver_name":
         user_states[user_id] = "awaiting_driver_phone"
         user_states[f"{user_id}_driver_name"] = msg
