@@ -7,10 +7,11 @@ import re
 from search_utils import search_services_arabic
 from services_data import SERVICES
 
-# ثم داخل دالة المعالجة أو في مكان الاستدعاء
-response = handle_driver_service(user_id, msg, user_states)
-if response:
-    return response 
+def dispatch_message(user_id, msg, user_states, ...):
+    response = handle_driver_service(user_id, msg, user_states)
+    if response:
+        return response
+    # أكمل بقية منطق الخدمات هنا 
 
 
 
