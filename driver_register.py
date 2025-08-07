@@ -2,6 +2,45 @@ import re
 import psycopg2
 from db_utils import PG_CONN_INFO
 
+def handle_driver_service(user_id, msg, user_states):
+    # منطق استقبال 14 أو "نقل"/"مشاوير"
+    if msg == "14" or msg in ["نقل", "مشاوير"]:
+        user_states[user_id] = "awaiting_driver_register"
+        return create_drivers_message() + "\n\n🚗 إذا أردت التسجيل كسائق أرسل: 88"
+
+    if msg == "88" and user_states.get(user_id) == "awaiting_driver_register":
+        user_states[user_id] = "awaiting_driver_name"
+        return "🚗 أرسل اسمك للتسجيل كسائق:"
+
+    if user_states.get(user_id) == "awaiting_driver_name":
+        user_states[user_id] = "awaiting_driver_phone"
+        user_states[f"{user_id}_driver_name"] = msg
+        return "📞 أرسل رقم جوالك (مثال: 9665xxxxxxxx):"
+
+    if user_states.get(user_id) == "awaiting_driver_phone":
+        name = user_states.get(f"{user_id}_driver_name", "")
+        phone_input = msg.strip()
+        phone_real = extract_phone_from_user_id(user_id)
+        phone_input_norm = normalize_phone(phone_input)
+        if not (phone_input_norm == phone_real):
+            user_states.pop(user_id, None)
+            user_states.pop(f"{user_id}_driver_name", None)
+            return f"🚫 يجب أن تسجل برقم جوالك المرتبط بالواتساب: {phone_real}"
+        if driver_exists(phone_real):
+            user_states.pop(user_id, None)
+            user_states.pop(f"{user_id}_driver_name", None)
+            return "✅ أنت مسجل مسبقاً كسائق لدينا."
+        add_driver(name, phone_real, user_id)
+        user_states.pop(user_id, None)
+        user_states.pop(f"{user_id}_driver_name", None)
+        return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone_real}"
+
+    # منطق التسجيل السريع أو الوصف (من دالتك الحالية)
+    response = handle_driver_registration(user_id, msg, user_states)
+    if response:
+        return response
+
+    return None
 def normalize_phone(phone: str) -> str:
     """
     Normalize phone numbers to 9665xxxxxxxx format.
