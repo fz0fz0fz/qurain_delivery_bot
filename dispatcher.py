@@ -230,6 +230,7 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     if msg in ["99", "٩٩"]:
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
             return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
+
     response = handle_main_menu(msg)
     if response: return response
     response = handle_feedback(user_id, msg, user_states)
@@ -244,8 +245,14 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response: return response
 
-    # معالجة رقم 14 حصرياً عبر ملف السائقين
-    if msg == "14":
+    # معالجة منطق النقل المدرسي والمشاوير والسائقين
+    if (
+        msg == "14"
+        or user_states.get(user_id) == "awaiting_driver_register"
+        or msg == "88"
+        or msg.startswith("سائق")
+        or user_states.get(user_id) in ["awaiting_driver_name", "awaiting_driver_phone", "awaiting_driver_description"]
+    ):
         response = handle_driver_service(user_id, msg, user_states)
         if response:
             return response
