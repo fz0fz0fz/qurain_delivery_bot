@@ -9,7 +9,7 @@ def handle_driver_service(user_id, msg, user_states):
         return create_drivers_message()
 
     # أي خطوة تخص التسجيل أو كان المستخدم في حالة تسجيل
-    if user_states.get(user_id) == "awaiting_driver_register" or msg == "88" or msg.startswith("سائق") \
+    if user_states.get(user_id) == "awaiting_driver_register" or msg == "88" or msg.strip() == "تسجيل" \
        or user_states.get(user_id) in ["awaiting_driver_name", "awaiting_driver_phone", "awaiting_driver_description"]:
         response = handle_driver_registration(user_id, msg, user_states)
         if response:
@@ -36,7 +36,7 @@ def handle_driver_registration(user_id: str, message: str, user_states: dict) ->
     الاسم -> الرقم -> وصف الخدمة -> تسجيل سريع برسالة واحدة.
     """
     # بدء التسجيل
-    if message.strip() in ["سائق", "تسجيل", "88"]:
+    if message.strip() in ["تسجيل", "88"]:
         user_states[user_id] = "awaiting_driver_name"
         return "🚗 أرسل اسمك فقط للتسجيل كسائق:"
 
@@ -232,3 +232,9 @@ def format_drivers_list(drivers):
         "━━━━━━━━━━━━━━━"
     )
     return output
+
+def create_drivers_message() -> str:
+    """عرض رسالة بكل السائقين المسجلين للنقل المدرسي."""
+    drivers = get_all_drivers()
+    msg = format_drivers_list(drivers)
+    return msg
