@@ -70,10 +70,30 @@ def handle_driver_service(user_id, msg, user_states):
         "مهنية", "ذبائح", "نقل مدرسي", "تأجير", "١٤", "14", "٢", "2", "3", "4", "5", "77", "٧٧", "88", "٨٨"
     ]
     numbers_ar = [str(i) for i in range(1, 16)]
-    numbers_arabic = ["١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "١٠", "١١", "١٢", "١٣", "١٤", "١٥"]
+    numbers_arabic = ["١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "١٠", "١١", "١٢", "١٣", "١٤", "١٥", "٠"]
     exit_keywords.extend(numbers_ar)
     exit_keywords.extend(numbers_arabic)
 
+    # قائمة الأرقام والكلمات التي لا تخرج المستخدم للقائمة أثناء التسجيل/الحذف
+    ignore_exit_numbers = ["0", "٠", "صفر", ".", "نقطة"]
+
+    # منطق الخروج الذكي أثناء التسجيل أو الحذف
+    if user_states.get(user_id) in [
+        "awaiting_driver_name", "awaiting_driver_phone", "awaiting_driver_description", "awaiting_driver_delete_number"
+    ]:
+        if msg.strip() in exit_keywords and msg.strip() not in ignore_exit_numbers:
+            # حفظ الحالة السابقة قبل التأكيد
+            user_states[f"{user_id}_prev_state"] = user_states.get(user_id)
+            # إذا كانت رقم خدمة من 1 إلى 15 احفظ الرقم المطلوب
+            if msg.strip() in numbers_ar + numbers_arabic:
+                user_states[user_id] = "awaiting_driver_confirmation_exit_with_num"
+                user_states[f"{user_id}_requested_num"] = msg.strip()
+                return f"⚠️ أنت الآن في عملية التسجيل أو الحذف.\nهل تريد الخروج والانتقال إلى الخدمة رقم [{msg.strip()}]؟ (أرسل نعم للخروج أو لا للمتابعة)"
+            else:
+                user_states[user_id] = "awaiting_driver_confirmation_exit"
+                return "⚠️ أنت الآن في عملية التسجيل أو الحذف. هل تريد الخروج؟ (أرسل نعم للخروج أو لا للمتابعة)"
+
+   
     # منطق الخروج الذكي أثناء التسجيل أو الحذف
     if user_states.get(user_id) in [
         "awaiting_driver_name", "awaiting_driver_phone", "awaiting_driver_description", "awaiting_driver_delete_number"
