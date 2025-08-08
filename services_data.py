@@ -220,11 +220,119 @@ SERVICES = {
         ]
     },
     "6": {
-        "name": "مطاعم",
-        "items": [
-            # {"name": "مطعم النخبة", "phone": "0500000004"},
-        ]
-    },
+    "name": "مطاعم",
+    "display_msg": """
+━━━━━━━━━━━━━━━━━━━
+🍽️ دليلك للمطاعم والوجبات السريعة في القرين
+━━━━━━━━━━━━━━━━━━━
+
+━━━━━━━━━━━━━━━
+🍛 ——— المطاعم ——— 🍛
+━━━━━━━━━━━━━━━
+
+🍴 مطعم لقمة سحاب
+📞 0536777194
+📍 https://maps.app.goo.gl/XcZWVeTQCt46BcWdA
+
+🍴 مطعم المدينة
+📞 0532834828
+📍 https://maps.app.goo.gl/iud8ZDgLRnqvwM99A
+
+🍴 مطعم غاية الرومنسية (الدليمية)
+📞 0162331234
+📍 https://maps.app.goo.gl/FG7JDNxYHKVvJCnh9
+
+━━━━━━━━━━━━━━━
+🍔 ——— الوجبات السريعة ——— 🍔
+━━━━━━━━━━━━━━━
+
+🥪 بوفيه ورد هناء عدن
+📞 0557838324
+📍 https://maps.app.goo.gl/mDjCRKZzii5xhuga6
+
+🥪 بوفية برنس الديرة
+📞 0508206110
+📍 https://maps.app.goo.gl/v2FtTaNuCCrSArZC8
+
+🍕 مطعم زاوية الراقي
+📞 0543053031
+📍 https://maps.app.goo.gl/BV9EkxF3TDebwyRb9
+
+🍔 بارت برقر (الدليمية)
+📞 0537711667
+📍 https://maps.app.goo.gl/UeqjLncboUgf9dgXA
+
+🔥 على الجمر (الدليمية)
+📞 0558881336
+📍 https://maps.app.goo.gl/DKmFWn9HMpcEsWLv9
+
+🌯 الذوق العالمي
+📞 0557322371
+📍 https://maps.app.goo.gl/9Sih7g9WiJivzFJJ8
+
+🍗 البيت الدمشقي
+📞 0552331616
+📍 https://maps.app.goo.gl/mJcVfDv6osxmYaAC6
+
+🥟 رقائق العجينة (الدليمية)
+📞 0558141818
+📍 https://maps.app.goo.gl/47QDiybQdU6UGTdY9
+
+🥮 الفطيرة الشرقية (الدليمية)
+📞 0162331919
+📍 https://maps.app.goo.gl/iikfvTpwKvcKeXw68
+
+🍗 كتكوت الطازج (الدليمية)
+📞 0578004950
+📍 https://maps.app.goo.gl/YhdXGH2tT9wq62Jx5
+
+━━━━━━━━━━━━━━━
+🍖 ——— المطابخ ——— 🍖
+━━━━━━━━━━━━━━━
+
+🥘 مطبخ ذبايح منصور (أبو أيوب)
+📞 0503973617
+📍 https://maps.app.goo.gl/9rLpqgfKR4eUdryG9
+
+🥘 الطبق النجدي
+📞 0530353557
+📍 https://maps.app.goo.gl/fhiHgwJguq1dBtS8A
+
+🥘 مطبخ الخالدية
+📞 0533421042
+📍 https://maps.app.goo.gl/ffmXstVj6MND5A6z5
+
+🥘 مطبخ شيف الديرة (أبو تركي)
+📞 0509097563
+📍 https://maps.app.goo.gl/bresRMFvSxvQ1GM98
+
+━━━━━━━━━━━━━━━━━━━
+🔄 أرسل 0 للعودة للقائمة الرئيسية
+📅 آخر تحديث: أغسطس 2025
+""",
+    "items": [
+        # المطاعم
+        {"name": "مطعم لقمة سحاب", "phone": "0536777194", "map": "https://maps.app.goo.gl/XcZWVeTQCt46BcWdA"},
+        {"name": "مطعم المدينة", "phone": "0532834828", "map": "https://maps.app.goo.gl/iud8ZDgLRnqvwM99A"},
+        {"name": "مطعم غاية الرومنسية (الدليمية)", "phone": "0162331234", "map": "https://maps.app.goo.gl/FG7JDNxYHKVvJCnh9"},
+        # الوجبات السريعة
+        {"name": "بوفيه ورد هناء عدن", "phone": "0557838324", "map": "https://maps.app.goo.gl/mDjCRKZzii5xhuga6"},
+        {"name": "بوفية برنس الديرة", "phone": "0508206110", "map": "https://maps.app.goo.gl/v2FtTaNuCCrSArZC8"},
+        {"name": "مطعم زاوية الراقي", "phone": "0543053031", "map": "https://maps.app.goo.gl/BV9EkxF3TDebwyRb9"},
+        {"name": "بارت برقر (الدليمية)", "phone": "0537711667", "map": "https://maps.app.goo.gl/UeqjLncboUgf9dgXA"},
+        {"name": "على الجمر (الدليمية)", "phone": "0558881336", "map": "https://maps.app.goo.gl/DKmFWn9HMpcEsWLv9"},
+        {"name": "الذوق العالمي", "phone": "0557322371", "map": "https://maps.app.goo.gl/9Sih7g9WiJivzFJJ8"},
+        {"name": "البيت الدمشقي", "phone": "0552331616", "map": "https://maps.app.goo.gl/mJcVfDv6osxmYaAC6"},
+        {"name": "رقائق العجينة (الدليمية)", "phone": "0558141818", "map": "https://maps.app.goo.gl/47QDiybQdU6UGTdY9"},
+        {"name": "الفطيرة الشرقية (الدليمية)", "phone": "0162331919", "map": "https://maps.app.goo.gl/iikfvTpwKvcKeXw68"},
+        {"name": "كتكوت الطازج (الدليمية)", "phone": "0578004950", "map": "https://maps.app.goo.gl/YhdXGH2tT9wq62Jx5"},
+        # المطابخ
+        {"name": "مطبخ ذبايح منصور (أبو أيوب)", "phone": "0503973617", "map": "https://maps.app.goo.gl/9rLpqgfKR4eUdryG9"},
+        {"name": "الطبق النجدي", "phone": "0530353557", "map": "https://maps.app.goo.gl/fhiHgwJguq1dBtS8A"},
+        {"name": "مطبخ الخالدية", "phone": "0533421042", "map": "https://maps.app.goo.gl/ffmXstVj6MND5A6z5"},
+        {"name": "مطبخ شيف الديرة (أبو تركي)", "phone": "0509097563", "map": "https://maps.app.goo.gl/bresRMFvSxvQ1GM98"},
+    ]
+},
     "7": {
         "name": "محلات",
         "items": [
