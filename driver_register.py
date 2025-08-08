@@ -77,6 +77,8 @@ def handle_driver_service(user_id, msg, user_states):
         "awaiting_driver_name", "awaiting_driver_phone", "awaiting_driver_description", "awaiting_driver_delete_number"
     ]:
         if msg.strip() in exit_keywords:
+            # حفظ الحالة السابقة قبل التأكيد
+            user_states[f"{user_id}_prev_state"] = user_states.get(user_id)
             # إذا كانت رقم خدمة من 1 إلى 15 احفظ الرقم المطلوب
             if msg.strip() in numbers_ar + numbers_arabic:
                 user_states[user_id] = "awaiting_driver_confirmation_exit_with_num"
@@ -91,19 +93,43 @@ def handle_driver_service(user_id, msg, user_states):
         if msg.strip() == "نعم":
             requested_num = user_states.pop(f"{user_id}_requested_num", None)
             user_states.pop(user_id, None)
+            user_states.pop(f"{user_id}_prev_state", None)
             return service_handler(user_id, requested_num, user_states)
         elif msg.strip() == "لا":
-            user_states[user_id] = "awaiting_driver_register"
-            return "🚗 الرجاء متابعة عملية التسجيل أو الحذف."
+            prev_state = user_states.pop(f"{user_id}_prev_state", "awaiting_driver_register")
+            user_states[user_id] = prev_state
+            # رسالة توجيه حسب الحالة السابقة
+            if prev_state == "awaiting_driver_name":
+                return "🚗 أرسل اسمك فقط للتسجيل كسائق:"
+            elif prev_state == "awaiting_driver_phone":
+                return "📞 أرسل رقم جوالك (مثال: 9665xxxxxxxx):"
+            elif prev_state == "awaiting_driver_description":
+                return "📝 أرسل وصف خدمتك (مثال: نقل من القرين لمدرسة (كذا) أو لكلية (كذا)):"
+            elif prev_state == "awaiting_driver_delete_number":
+                return "📞 أرسل رقم السائق المراد حذفه (يمكنك كتابته بأي صيغة: 9665..., 05..., 5...):"
+            else:
+                return "🚗 الرجاء متابعة عملية التسجيل أو الحذف."
 
     # منطق تأكيد الخروج بدون رقم خدمة
     if user_states.get(user_id) == "awaiting_driver_confirmation_exit":
         if msg.strip() == "نعم":
             user_states.pop(user_id, None)
+            user_states.pop(f"{user_id}_prev_state", None)
             return "✅ تم الخروج من العملية. يمكنك اختيار خدمة أخرى."
         elif msg.strip() == "لا":
-            user_states[user_id] = "awaiting_driver_register"
-            return "🚗 الرجاء متابعة عملية التسجيل أو الحذف."
+            prev_state = user_states.pop(f"{user_id}_prev_state", "awaiting_driver_register")
+            user_states[user_id] = prev_state
+            # رسالة توجيه حسب الحالة السابقة
+            if prev_state == "awaiting_driver_name":
+                return "🚗 أرسل اسمك فقط للتسجيل كسائق:"
+            elif prev_state == "awaiting_driver_phone":
+                return "📞 أرسل رقم جوالك (مثال: 9665xxxxxxxx):"
+            elif prev_state == "awaiting_driver_description":
+                return "📝 أرسل وصف خدمتك (مثال: نقل من القرين لمدرسة (كذا) أو لكلية (كذا)):"
+            elif prev_state == "awaiting_driver_delete_number":
+                return "📞 أرسل رقم السائق المراد حذفه (يمكنك كتابته بأي صيغة: 9665..., 05..., 5...):"
+            else:
+                return "🚗 الرجاء متابعة عملية التسجيل أو الحذف."
 
     # استقبال "14" أو "نقل"/"مشاوير": عرض السائقين وبدء التسجيل
     if msg == "14" or msg in ["نقل", "مشاوير"]:
