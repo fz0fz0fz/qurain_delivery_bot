@@ -238,16 +238,24 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     if response: return response
 
     # معالجة منطق النقل المدرسي والمشاوير والسائقين (مع حالة الحذف المضافة)
-    if (
-        msg == "14"
-        or user_states.get(user_id) == "awaiting_driver_register"
-        or msg == "88"
-        or msg.startswith("سائق")
-        or user_states.get(user_id) in [
-            "awaiting_driver_name",
-            "awaiting_driver_phone",
-            "awaiting_driver_description",
-            "awaiting_driver_delete_number"
+    
+if (
+    msg == "14"
+    or user_states.get(user_id) == "awaiting_driver_register"
+    or msg == "88"
+    or msg.startswith("سائق")
+    or user_states.get(user_id) in [
+        "awaiting_driver_name",
+        "awaiting_driver_phone",
+        "awaiting_driver_description",
+        "awaiting_driver_delete_number",
+        "awaiting_driver_confirmation_exit",                # أضف هذا
+        "awaiting_driver_confirmation_exit_with_num"         # وأضف هذا
+    ]
+):
+    response = handle_driver_service(user_id, msg, user_states)
+    if response:
+        return response
         ]
     ):
         response = handle_driver_service(user_id, msg, user_states)
