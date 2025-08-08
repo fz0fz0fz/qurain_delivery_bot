@@ -64,7 +64,6 @@ def service_handler(user_id, requested_num, user_states):
         return "🚫 الرقم غير صحيح أو الخدمة غير موجودة.\nيرجى اختيار رقم من القائمة أو أرسل `0` للقائمة الرئيسية."
 
 def handle_driver_service(user_id, msg, user_states):
-    # كلمات وأرقام الخدمات التي تعني رغبة بالخروج من التسجيل/الحذف
     exit_keywords = [
         "نقل", "صيدلية", "مطعم", "بقالة", "خضار", "حلا", "محلات", "شالية", "وايت", "عمال",
         "مهنية", "ذبائح", "نقل مدرسي", "تأجير", "١٤", "14", "٢", "2", "3", "4", "5", "77", "٧٧", "88", "٨٨"
@@ -74,7 +73,6 @@ def handle_driver_service(user_id, msg, user_states):
     exit_keywords.extend(numbers_ar)
     exit_keywords.extend(numbers_arabic)
 
-    # قائمة الأرقام والكلمات التي لا تخرج المستخدم للقائمة أثناء التسجيل/الحذف
     ignore_exit_numbers = ["0", "٠", "صفر", ".", "نقطة"]
 
     # منطق الخروج الذكي أثناء التسجيل أو الحذف
@@ -82,9 +80,7 @@ def handle_driver_service(user_id, msg, user_states):
         "awaiting_driver_name", "awaiting_driver_phone", "awaiting_driver_description", "awaiting_driver_delete_number"
     ]:
         if msg.strip() in exit_keywords and msg.strip() not in ignore_exit_numbers:
-            # حفظ الحالة السابقة قبل التأكيد
             user_states[f"{user_id}_prev_state"] = user_states.get(user_id)
-            # إذا كانت رقم خدمة من 1 إلى 15 احفظ الرقم المطلوب
             if msg.strip() in numbers_ar + numbers_arabic:
                 user_states[user_id] = "awaiting_driver_confirmation_exit_with_num"
                 user_states[f"{user_id}_requested_num"] = msg.strip()
@@ -92,6 +88,8 @@ def handle_driver_service(user_id, msg, user_states):
             else:
                 user_states[user_id] = "awaiting_driver_confirmation_exit"
                 return "⚠️ أنت الآن في عملية التسجيل أو الحذف. هل تريد الخروج؟ (أرسل نعم للخروج أو لا للمتابعة)"
+
+    # باقي الكود كما هو عندك...
 
    
     # منطق الخروج الذكي أثناء التسجيل أو الحذف
