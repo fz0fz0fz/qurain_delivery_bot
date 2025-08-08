@@ -223,9 +223,20 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
             return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
 
-    response = handle_main_menu(msg)
-    if response:
-        return response
+    # ✅ تعديل هنا: لا ترجع القائمة الرئيسية إذا المستخدم في حالة تسجيل/حذف سائق
+    driver_states = [
+        "awaiting_driver_register",
+        "awaiting_driver_name",
+        "awaiting_driver_phone",
+        "awaiting_driver_description",
+        "awaiting_driver_delete_number",
+        "awaiting_driver_confirmation_exit",
+        "awaiting_driver_confirmation_exit_with_num"
+    ]
+    if user_states.get(user_id) not in driver_states:
+        response = handle_main_menu(msg)
+        if response:
+            return response
 
     response = handle_feedback(user_id, msg, user_states)
     if response:
@@ -254,14 +265,7 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         or user_states.get(user_id) == "awaiting_driver_register"
         or msg == "88"
         or msg.startswith("سائق")
-        or user_states.get(user_id) in [
-            "awaiting_driver_name",
-            "awaiting_driver_phone",
-            "awaiting_driver_description",
-            "awaiting_driver_delete_number",
-            "awaiting_driver_confirmation_exit",                
-            "awaiting_driver_confirmation_exit_with_num"         
-        ]
+        or user_states.get(user_id) in driver_states
     ):
         response = handle_driver_service(user_id, msg, user_states)
         if response:
