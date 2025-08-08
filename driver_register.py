@@ -16,7 +16,7 @@ def handle_driver_service(user_id, msg, user_states):
             return response
 
     # منطق حذف السائق برقم الجوال أو المعرف الشخصي
-    if msg in "حذف سائق", "77", "٧٧"]:
+    if msg in ["حذف سائق", "77", "٧٧"]:
         user_states[user_id] = "awaiting_driver_delete_number"
         return "📞 أرسل رقم السائق المراد حذفه (يمكنك كتابته بأي صيغة: 9665..., 05..., 5...):"
 
@@ -36,7 +36,7 @@ def handle_driver_registration(user_id: str, message: str, user_states: dict) ->
     الاسم -> الرقم -> وصف الخدمة -> تسجيل سريع برسالة واحدة.
     """
     # بدء التسجيل
-    if message.strip() in ["سائق", "سائق ", ", تسجيل", "88"]:
+    if message.strip() in ["سائق", "تسجيل", "88"]:
         user_states[user_id] = "awaiting_driver_name"
         return "🚗 أرسل اسمك فقط للتسجيل كسائق:"
 
@@ -44,7 +44,7 @@ def handle_driver_registration(user_id: str, message: str, user_states: dict) ->
     if user_states.get(user_id) == "awaiting_driver_name":
         user_states[f"{user_id}_driver_name"] = message.strip()
         user_states[user_id] = "awaiting_driver_phone"
-        return "📞 أرسل رقم جوالك "
+        return "📞 أرسل رقم جوالك (مثال: 9665xxxxxxxx):"
 
     # الخطوة الثالثة: الرقم
     if user_states.get(user_id) == "awaiting_driver_phone":
@@ -216,9 +216,8 @@ def format_drivers_list(drivers):
     """
     output = (
         "🚕 *خدمة النقل المدرسي والمشاوير*\n"
-        " إذا أردت التسجيل كسائق في خدمة النقل أرسل كلمة تسجيل أو رقم ٨٨، 
-     *\n"
-        ":     \n"
+        "إذا أردت التسجيل كسائق في خدمة النقل، أرسل: *سائق* أو *تسجيل* أو رقم 88\n"
+        "مثال: سائق - أحمد - 966512345678\n"
         "━━━━━━━━━━━━━━━\n"
         "*قائمة السائقين المتاحين:*\n"
     )
