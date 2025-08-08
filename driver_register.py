@@ -211,21 +211,37 @@ def extract_phone_from_user_id(user_id: str) -> str:
 
 def create_drivers_message() -> str:
     """عرض رسالة بكل السائقين المسجلين للنقل المدرسي."""
-    drivers = get_all_drivers()
-    if not drivers:
-        drivers_list = "لا يوجد سائقين مسجلين حالياً."
-    else:
-        drivers_list = "\n".join([
-            f"{name} - {phone}\n{desc}" if desc else f"{name} - {phone}"
-            for name, phone, desc in drivers
-        ])
-    msg = (
+    def format_drivers_list(drivers):
+    """
+    drivers: قائمة من القواميس أو tuples، كل سائق: {"name": ..., "phone": ..., "desc": ...}
+    أو (name, phone, desc)
+    """
+    output = (
         "🚕 *خدمة النقل المدرسي والمشاوير*\n"
         "إذا أردت التسجيل كسائق في خدمة النقل، أرسل: *سائق - اسمك - رقمك*\n"
         "مثال: سائق - أحمد - 966512345678\n"
         "━━━━━━━━━━━━━━━\n"
         "*قائمة السائقين المتاحين:*\n"
-        f"{drivers_list}\n"
+    )
+    if not drivers:
+        output += "لا يوجد سائقين متاحين حالياً.\n"
+    else:
+        for idx, driver in enumerate(drivers, 1):
+            # إذا كان driver عبارة عن tuple (name, phone, desc)
+            if isinstance(driver, tuple):
+                name, phone, desc = driver
+            else:  # dict
+                name = driver.get('name', '')
+                phone = driver.get('phone', '')
+                desc = driver.get('desc', '')
+            output += (
+                f"{idx}. {name} - {phone}\n"
+                f"{desc}\n"
+                "-------------------------\n"
+            )
+    output += (
+        "━━━━━━━━━━━━━━━\n"
+        "🚗 إذا أردت التسجيل كسائق أرسل: 88\n"
         "━━━━━━━━━━━━━━━"
     )
-    return msg
+    return output
