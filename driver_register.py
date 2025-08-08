@@ -48,10 +48,12 @@ main_menu_text = (
 def service_handler(user_id, requested_num, user_states):
     # دعم الأرقام العربية
     num_map = {
+        "٠": "0", "0": "0", "صفر": "0", ".": "0", "نقطة": "0",
         "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5",
         "٦": "6", "٧": "7", "٨": "8", "٩": "9", "١٠": "10",
         "١١": "11", "١٢": "12", "١٣": "13", "١٤": "14", "١٥": "15"
     }
+
     num = num_map.get(requested_num.strip(), requested_num.strip())
     if num == "0":
         return main_menu_text
