@@ -98,7 +98,6 @@ def handle_driver_service(user_id, msg, user_states):
         elif msg.strip() == "لا":
             prev_state = user_states.pop(f"{user_id}_prev_state", "awaiting_driver_register")
             user_states[user_id] = prev_state
-            # رسالة توجيه حسب الحالة السابقة
             if prev_state == "awaiting_driver_name":
                 return "🚗 أرسل اسمك فقط للتسجيل كسائق:"
             elif prev_state == "awaiting_driver_phone":
@@ -119,7 +118,6 @@ def handle_driver_service(user_id, msg, user_states):
         elif msg.strip() == "لا":
             prev_state = user_states.pop(f"{user_id}_prev_state", "awaiting_driver_register")
             user_states[user_id] = prev_state
-            # رسالة توجيه حسب الحالة السابقة
             if prev_state == "awaiting_driver_name":
                 return "🚗 أرسل اسمك فقط للتسجيل كسائق:"
             elif prev_state == "awaiting_driver_phone":
