@@ -340,11 +340,180 @@ SERVICES = {
         ]
     },
     "8": {
-        "name": "شالية",
-        "items": [
-            # {"name": "شاليه الريف", "phone": "0500000006"},
-        ]
-    },
+    "name": "شالية",
+    "display_msg": """
+━━━━━━━━━━━━━━━━━━━
+🏨 دليلك للشاليهات والاستراحات وقاعات المناسبات في القرين
+━━━━━━━━━━━━━━━━━━━
+
+━━━━━━━━━━━━━━━
+🎉 ——— القاعات وقصور الاحتفالات ———
+━━━━━━━━━━━━━━━
+
+💒 قصر القرين للإحتفالات
+📞 0508009954
+📍 https://maps.app.goo.gl/G92q1VLsw5PWqqz39
+
+💒 قاعة العائلة (الحسين)
+📞 0503141604
+📍 https://maps.app.goo.gl/ta5UBuPuESHodGjV8
+
+💒 قاعة الأفق
+📞 0555133902
+📍 https://maps.app.goo.gl/YTnnGxZR8ZNbjrzc8
+
+💒 قصر السلام
+📞 0551350490
+📍 https://maps.app.goo.gl/Bzj14YB2qkJW2btPA
+
+💒 استراحة الأسرة
+📞 0576352699
+📍 https://maps.app.goo.gl/WBuc7deMbxcK5NAg8
+
+━━━━━━━━━━━━━━━
+🌴 ——— الشاليهات والمنتجعات ———
+━━━━━━━━━━━━━━━
+
+🏝️ شالية لانسي
+📞 0555409795
+📍 https://maps.app.goo.gl/1yqgq2qmvAuy8fPf9
+
+🏝️ شالية بيلا
+📞 0502284499
+📍 https://maps.app.goo.gl/3h8tqbneDnjj5UmAA
+
+🏝️ شالية أوكلاند
+📞 0536652013
+📍 https://maps.app.goo.gl/iryQmrSVpkjoWUfr9
+
+🏝️ شالية فنو
+📞 0504892347
+📍 https://maps.app.goo.gl/HrN4ph7W7Rnnouq47
+
+🏝️ شالية رودينا
+📞 0504898642 – 0540615659 – 0558054912
+📍 https://maps.app.goo.gl/2meJanF8z8yd1AR66
+
+🏝️ شالية ميرا
+📞 0531205601
+📍 https://maps.app.goo.gl/i4KGaRG5GwyfzXHy9
+
+🏝️ شالية HR
+📞 0502350572
+📍 https://maps.app.goo.gl/oUqTSfJgLVCpC5ac8
+
+🏝️ شالية الضويحيات
+📞 0544227716
+📍 https://maps.app.goo.gl/MHLnHhiy167ukgAU7
+
+🏝️ شالية التركي
+📞 0555171778
+📍 https://maps.app.goo.gl/WrnxKw48ayAS9RWi9
+
+🏝️ شالية لمار
+📞 0537932557
+📍 https://maps.app.goo.gl/hiJAQvcX3ZwoucQR6
+
+🏝️ شالية ألوان
+📞 0555372729
+📍 https://maps.app.goo.gl/MfXPGDZ9kJ3K1cKdA
+
+🏝️ منتجع غنى
+📞 0532760400
+📍 https://maps.app.goo.gl/h54d7KU18X7dLrr96
+
+🏝️ منتجع الريف
+📞 0507473077
+📍 https://maps.app.goo.gl/WuTDVRpMJxfyD7ni9
+
+🏝️ منتجع النخيل
+📞 0507862221
+📍 https://maps.app.goo.gl/fQ35here4Z8Jh5sv8
+
+━━━━━━━━━━━━━━━
+🏕️ ——— الاستراحات ———
+━━━━━━━━━━━━━━━
+
+🏕️ استراحة الأثير
+📞 0540615659
+📍 https://maps.app.goo.gl/ELU5omRUnBkLZqwr6
+
+🏕️ استراحة البرج
+📞 0591584142
+📍 https://maps.app.goo.gl/zKjTie3r9isLsara8
+
+🏕️ استراحة الجود
+📞 0531412999 – 0559517354
+📍 https://maps.app.goo.gl/ih7uDnBpvpA5FFG27
+
+🏕️ استراحة الريف
+📞 0532760882
+📍 https://maps.app.goo.gl/EoLZVHGyGpJRKP9j9
+
+🏕️ استراحة سُجى
+📞 0506125242
+📍 https://maps.app.goo.gl/tisxwEtTwRpR3Hgm6
+
+🏕️ استراحة الأمجاد
+📞 0559400810
+📍 https://maps.app.goo.gl/vMTU1dro1BAvwdEs9
+
+🏕️ استراحة الشمال
+📞 0554953655
+📍 https://maps.app.goo.gl/R6jzpqMpHjsJCExYA
+
+━━━━━━━━━━━━━━━
+🐎 ——— الاسطبلات ———
+━━━━━━━━━━━━━━━
+
+🐎 مربط عز النوايف
+📞 0590040034
+📍 https://maps.app.goo.gl/VCbFDuSg4sBijTdn7
+
+🐎 اسطبل الشفاء
+📞 0559997770
+📍 https://maps.app.goo.gl/rMyYfozJLiyA1zAg9
+
+━━━━━━━━━━━━━━━━━━━
+🔄 أرسل 0 للعودة للقائمة الرئيسية
+📅 آخر تحديث: أغسطس 2025
+━━━━━━━━━━━━━━━━━━━
+""",
+    "items": [
+        # القاعات
+        {"name": "قصر القرين للإحتفالات", "phone": "0508009954", "map": "https://maps.app.goo.gl/G92q1VLsw5PWqqz39"},
+        {"name": "قاعة العائلة (الحسين)", "phone": "0503141604", "map": "https://maps.app.goo.gl/ta5UBuPuESHodGjV8"},
+        {"name": "قاعة الأفق", "phone": "0555133902", "map": "https://maps.app.goo.gl/YTnnGxZR8ZNbjrzc8"},
+        {"name": "قصر السلام", "phone": "0551350490", "map": "https://maps.app.goo.gl/Bzj14YB2qkJW2btPA"},
+        {"name": "استراحة الأسرة", "phone": "0576352699", "map": "https://maps.app.goo.gl/WBuc7deMbxcK5NAg8"},
+        # الشاليهات
+        {"name": "شالية لانسي", "phone": "0555409795", "map": "https://maps.app.goo.gl/1yqgq2qmvAuy8fPf9"},
+        {"name": "شالية بيلا", "phone": "0502284499", "map": "https://maps.app.goo.gl/3h8tqbneDnjj5UmAA"},
+        {"name": "شالية أوكلاند", "phone": "0536652013", "map": "https://maps.app.goo.gl/iryQmrSVpkjoWUfr9"},
+        {"name": "شالية فنو", "phone": "0504892347", "map": "https://maps.app.goo.gl/HrN4ph7W7Rnnouq47"},
+        {"name": "شالية رودينا", "phone": "0504898642 – 0540615659 – 0558054912", "map": "https://maps.app.goo.gl/2meJanF8z8yd1AR66"},
+        {"name": "شالية ميرا", "phone": "0531205601", "map": "https://maps.app.goo.gl/i4KGaRG5GwyfzXHy9"},
+        {"name": "شالية HR", "phone": "0502350572", "map": "https://maps.app.goo.gl/oUqTSfJgLVCpC5ac8"},
+        {"name": "شالية الضويحيات", "phone": "0544227716", "map": "https://maps.app.goo.gl/MHLnHhiy167ukgAU7"},
+        {"name": "شالية التركي", "phone": "0555171778", "map": "https://maps.app.goo.gl/WrnxKw48ayAS9RWi9"},
+        {"name": "شالية لمار", "phone": "0537932557", "map": "https://maps.app.goo.gl/hiJAQvcX3ZwoucQR6"},
+        {"name": "شالية ألوان", "phone": "0555372729", "map": "https://maps.app.goo.gl/MfXPGDZ9kJ3K1cKdA"},
+        {"name": "منتجع غنى", "phone": "0532760400", "map": "https://maps.app.goo.gl/h54d7KU18X7dLrr96"},
+        {"name": "منتجع الريف", "phone": "0507473077", "map": "https://maps.app.goo.gl/WuTDVRpMJxfyD7ni9"},
+        {"name": "منتجع النخيل", "phone": "0507862221", "map": "https://maps.app.goo.gl/fQ35here4Z8Jh5sv8"},
+        # الاستراحات
+        {"name": "استراحة الأثير", "phone": "0540615659", "map": "https://maps.app.goo.gl/ELU5omRUnBkLZqwr6"},
+        {"name": "استراحة البرج", "phone": "0591584142", "map": "https://maps.app.goo.gl/zKjTie3r9isLsara8"},
+        {"name": "استراحة الجود", "phone": "0531412999 – 0559517354", "map": "https://maps.app.goo.gl/ih7uDnBpvpA5FFG27"},
+        {"name": "استراحة الريف", "phone": "0532760882", "map": "https://maps.app.goo.gl/EoLZVHGyGpJRKP9j9"},
+        {"name": "استراحة سُجى", "phone": "0506125242", "map": "https://maps.app.goo.gl/tisxwEtTwRpR3Hgm6"},
+        {"name": "استراحة الأمجاد", "phone": "0559400810", "map": "https://maps.app.goo.gl/vMTU1dro1BAvwdEs9"},
+        {"name": "استراحة الشمال", "phone": "0554953655", "map": "https://maps.app.goo.gl/R6jzpqMpHjsJCExYA"},
+        # الاسطبلات
+        {"name": "مربط عز النوايف", "phone": "0590040034", "map": "https://maps.app.goo.gl/VCbFDuSg4sBijTdn7"},
+        {"name": "اسطبل الشفاء", "phone": "0559997770", "map": "https://maps.app.goo.gl/rMyYfozJLiyA1zAg9"},
+    ]
+},
     "9": {
         "name": "وايت",
         "items": [
