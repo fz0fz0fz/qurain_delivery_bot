@@ -238,7 +238,6 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
     if response: return response
 
     # معالجة منطق النقل المدرسي والمشاوير والسائقين (مع حالة الحذف المضافة)
-    
 if (
     msg == "14"
     or user_states.get(user_id) == "awaiting_driver_register"
@@ -249,36 +248,31 @@ if (
         "awaiting_driver_phone",
         "awaiting_driver_description",
         "awaiting_driver_delete_number",
-        "awaiting_driver_confirmation_exit",                # أضف هذا
-        "awaiting_driver_confirmation_exit_with_num"         # وأضف هذا
+        "awaiting_driver_confirmation_exit",                
+        "awaiting_driver_confirmation_exit_with_num"         
     ]
 ):
     response = handle_driver_service(user_id, msg, user_states)
     if response:
         return response
-        
-    ):
-        response = handle_driver_service(user_id, msg, user_states)
-        if response:
-            return response
 
-    # الخدمات الأخرى من SERVICES (باستثناء 14)
-    if msg.isdigit() and msg in SERVICES and msg != "14":
-        service_id = msg
-        service_data = SERVICES[service_id]
-        if "display_msg" in service_data:
-            return service_data["display_msg"]
-        else:
-            return handle_service(
-                user_id,
-                msg,
-                user_states,
-                user_orders,
-                service_id,
-                service_data.get("name", ""),
-                service_data.get("items", []),
-                allowed_service_ids,
-                main_menu_text
-            )
+# الخدمات الأخرى من SERVICES (باستثناء 14)
+if msg.isdigit() and msg in SERVICES and msg != "14":
+    service_id = msg
+    service_data = SERVICES[service_id]
+    if "display_msg" in service_data:
+        return service_data["display_msg"]
+    else:
+        return handle_service(
+            user_id,
+            msg,
+            user_states,
+            user_orders,
+            service_id,
+            service_data.get("name", ""),
+            service_data.get("items", []),
+            allowed_service_ids,
+            main_menu_text
+        )
 
     
