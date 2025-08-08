@@ -6,7 +6,7 @@ def handle_driver_service(user_id, msg, user_states):
     # استقبال "14" أو "نقل"/"مشاوير": عرض السائقين وبدء التسجيل
     if msg == "14" or msg in ["نقل", "مشاوير"]:
         user_states[user_id] = "awaiting_driver_register"
-        return create_drivers_message() + "\n\n🚗 إذا أردت التسجيل كسائق أرسل: 88"
+        return create_drivers_message()
 
     # أي خطوة تخص التسجيل أو كان المستخدم في حالة تسجيل
     if user_states.get(user_id) == "awaiting_driver_register" or msg == "88" or msg.startswith("سائق") \
@@ -25,7 +25,7 @@ def handle_driver_service(user_id, msg, user_states):
         user_states.pop(user_id, None)
         return result
 
-    if msg in ["احذف", "حذف" , "ازاله" ,"إزالة"]:
+    if msg in ["احذف", "حذف", "ازاله", "إزالة"]:
         return delete_driver(user_id)
 
     return None
@@ -62,9 +62,7 @@ def handle_driver_registration(user_id: str, message: str, user_states: dict) ->
             return "✅ أنت مسجل مسبقاً كسائق لدينا."
         user_states[f"{user_id}_driver_phone"] = phone_real
         user_states[user_id] = "awaiting_driver_description"
-        return (
-            "📝 أرسل وصف خدمتك (مثال: نقل من القرين لمدرسة (كذا) أو لكلية (كذا)):"
-        )
+        return "📝 أرسل وصف خدمتك (مثال: نقل من القرين لمدرسة (كذا) أو لكلية (كذا)):"
 
     # الخطوة الرابعة: وصف الخدمة
     if user_states.get(user_id) == "awaiting_driver_description":
@@ -75,9 +73,7 @@ def handle_driver_registration(user_id: str, message: str, user_states: dict) ->
         user_states.pop(user_id, None)
         user_states.pop(f"{user_id}_driver_name", None)
         user_states.pop(f"{user_id}_driver_phone", None)
-        return (
-            f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone}\nالوصف: {desc}"
-        )
+        return f"✅ تم تسجيلك بنجاح كسائق.\nالاسم: {name}\nالرقم: {phone}\nالوصف: {desc}"
 
     # التسجيل السريع (سائق - اسم - رقم)
     match = re.match(
@@ -148,7 +144,6 @@ def delete_driver(user_id: str, phone_input: str = None) -> str:
     إذا أُعطي رقم، يجب أن يكون مطابق لرقم المستخدم الفعلي (لا يمكن حذف سائق آخر).
     """
     phone_real = extract_phone_from_user_id(user_id)
-    # إذا لم يُعطَ رقم، احذف بيانات المستخدم نفسه
     if phone_input is None:
         if not driver_exists(phone_real):
             return "🚫 لم يتم العثور على بياناتك كسائق لدينا."
@@ -165,12 +160,10 @@ def delete_driver(user_id: str, phone_input: str = None) -> str:
         except Exception as e:
             print(f"Error in delete_driver (self): {e}")
             return "🚫 حدث خطأ أثناء حذف بياناتك، حاول مرة أخرى لاحقًا."
-    # إذا أُعطي رقم، يجب أن يكون مطابق لرقم المستخدم
     else:
         phone_input_norm = normalize_phone(phone_input)
         if phone_input_norm != phone_real:
             return "🚫 لا يمكنك حذف إلا بياناتك الشخصية فقط، يجب أن يكون الرقم مطابق لرقمك في واتساب."
-        # نفس منطق الحذف أعلاه
         if not driver_exists(phone_real):
             return "🚫 لم يتم العثور على بياناتك كسائق لدينا."
         try:
