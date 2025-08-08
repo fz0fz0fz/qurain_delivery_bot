@@ -209,9 +209,7 @@ def extract_phone_from_user_id(user_id: str) -> str:
     """استخراج رقم الجوال من معرف واتساب."""
     return normalize_phone(user_id.split("@")[0] if "@c.us" in user_id else user_id)
 
-def create_drivers_message() -> str:
-    """عرض رسالة بكل السائقين المسجلين للنقل المدرسي."""
-    def format_drivers_list(drivers):
+def format_drivers_list(drivers):
     """
     drivers: قائمة من القواميس أو tuples، كل سائق: {"name": ..., "phone": ..., "desc": ...}
     أو (name, phone, desc)
@@ -227,10 +225,9 @@ def create_drivers_message() -> str:
         output += "لا يوجد سائقين متاحين حالياً.\n"
     else:
         for idx, driver in enumerate(drivers, 1):
-            # إذا كان driver عبارة عن tuple (name, phone, desc)
             if isinstance(driver, tuple):
                 name, phone, desc = driver
-            else:  # dict
+            else:
                 name = driver.get('name', '')
                 phone = driver.get('phone', '')
                 desc = driver.get('desc', '')
@@ -245,3 +242,9 @@ def create_drivers_message() -> str:
         "━━━━━━━━━━━━━━━"
     )
     return output
+
+def create_drivers_message() -> str:
+    """عرض رسالة بكل السائقين المسجلين للنقل المدرسي."""
+    drivers = get_all_drivers()
+    msg = format_drivers_list(drivers)
+    return msg
