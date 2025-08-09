@@ -238,8 +238,13 @@ def dispatch_message(
 
     # الحالات الخاصة أولاً
     if msg in ["99", "٩٩"]:
-    if not user_states.get(user_id, "").startswith("awaiting_order_"):
-        return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
+        if not user_states.get(user_id, "").startswith("awaiting_order_"):
+            return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإ99،  
+يجب أن يكون **مُزَحْلَـقًا لليمين** (4 فراغات أو تاب).
+
+---
+
+**أي استفسار أو تحتاج باقي الدالة كاملة؟ أخبرني بذلك!**
     # لا ترجع القائمة الرئيسية إذا المستخدم في حالة تسجيل/حذف سائق
     driver_states = [
         "awaiting_driver_register",
