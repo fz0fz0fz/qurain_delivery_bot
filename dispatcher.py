@@ -237,8 +237,8 @@ def dispatch_message(
     msg = message.strip()
 
     # الحالات الخاصة أولاً
-    if msg in ["99", "٩️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
-
+    if msg in ["99", "_id, "").startswith("awaiting_order_"):
+        return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
     # لا ترجع القائمة الرئيسية إذا المستخدم في حالة تسجيل/حذف سائق
     driver_states = [
         "awaiting_driver_register",
