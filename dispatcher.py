@@ -215,7 +215,15 @@ def format_search_results(results):
     msg += "🔄 أرسل 0 للعودة للقائمة الرئيسية"
     return msg
 
-def dispatch_message(user_id, message, user_states, user_orders, driver_id=None, latitude=None, longitude=None):
+def dispatch_message(
+    user_id, 
+    message, 
+    user_states, 
+    user_orders, 
+    driver_id=None, 
+    latitude=None, 
+    longitude=None
+):
     msg = message.strip()
 
     # الحالات الخاصة أولاً
@@ -223,19 +231,46 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
             return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
 
-    response = handle_main_menu(msg)
-    if response: return response
+    # لا ترجع القائمة الرئيسية إذا المستخدم في حالة تسجيل/حذف سائق
+    driver_states = [
+        "awaiting_driver_register",
+        "awaiting_driver_name",
+        "awaiting_driver_phone",
+        "awaiting_driver_description",
+        "awaiting_driver_delete_number",
+        "awaiting_driver_confirmation_exit",
+        "awaiting_driver_confirmation_exit_with_num"
+    ]
+    if user_states.get(user_id) not in driver_states:
+        response = handle_main_menu(msg)
+        if response:
+            return response
+
+    # معالجة الاقتراحات والشكاوى
     response = handle_feedback(user_id, msg, user_states)
-    if response: return response
+    if response:
+        return response
+
+    # عرض الطلبات المحفوظة
     response = handle_view_orders(user_id, msg, user_orders)
-    if response: return response
+    if response:
+        return response
+
+    # إنهاء وإرسال الطلبات
     response = handle_finalize_order(user_id, msg, user_orders)
-    if response: return response
+    if response:
+        return response
+
+    # قبول الطلب من قبل السائق
     if driver_id:
         response = handle_driver_accept_order(msg, driver_id, user_states)
-        if response: return response
+        if response:
+            return response
+
+    # استقبال الموقع من المستخدم
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
-    if response: return response
+    if response:
+        return response
 
     # معالجة منطق النقل المدرسي والمشاوير والسائقين (مع حالة الحذف المضافة)
     if (
@@ -243,18 +278,19 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         or user_states.get(user_id) == "awaiting_driver_register"
         or msg == "88"
         or msg.startswith("سائق")
-        or user_states.get(user_id) in [
-            "awaiting_driver_name",
-            "awaiting_driver_phone",
-            "awaiting_driver_description",
-            "awaiting_driver_delete_number"
-        ]
+        or user_states.get(user_id) in driver_states
     ):
         response = handle_driver_service(user_id, msg, user_states)
         if response:
             return response
 
-    # الخدمات الأخرى من SERVICES (باستثناء 14)
+    # البحث بالكلمات المفتاحية إذا لم يكن رقم خدمة
+    if not msg.isdigit():
+        result = get_service_by_keyword(msg)
+        if result:
+            return result.get("display_msg", "تم العثور على الخدمة لكن لا توجد رسالة عرض.")
+
+    # الخدمات الأخرى من SERVICES (باستثناء خدمة النقل المدرسي رقم 14)
     if msg.isdigit() and msg in SERVICES and msg != "14":
         service_id = msg
         service_data = SERVICES[service_id]
@@ -272,3 +308,6 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
                 allowed_service_ids,
                 main_menu_text
             )
+
+    # إذا لم يتحقق أي شرط يرجع None (أو رسالة افتراضية)
+    return None
