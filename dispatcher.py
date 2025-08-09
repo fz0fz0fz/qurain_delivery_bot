@@ -49,6 +49,12 @@ main_menu_text = (
     "━━━━━━━━━━━━━━━"
 )
 
+def get_service_by_keyword(keyword):
+    for key, value in SERVICES.items():
+        if keyword in key.split(','):
+            return value
+    return None
+
 def save_order_driver(order_number, driver_id):
     conn = sqlite3.connect('orders.db')
     c = conn.cursor()
