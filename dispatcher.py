@@ -49,11 +49,6 @@ main_menu_text = (
     "━━━━━━━━━━━━━━━"
 )
 
-def get_service_by_keyword(keyword):
-    for key, value in SERVICES.items():
-        if keyword in key.split(','):
-            return value
-    return None
 
 def save_order_driver(order_number, driver_id):
     conn = sqlite3.connect('orders.db')
@@ -221,15 +216,30 @@ def format_search_results(results):
     msg += "🔄 أرسل 0 للعودة للقائمة الرئيسية"
     return msg
 
-def dispatch_message(user_id, message, user_states, user_orders, driver_id=None, latitude=None, longitude=None):
+def get_service_by_keyword(keyword):
+    # بحث جزئي وغير حساس لحالة الأحرف
+    keyword = keyword.strip().lower()
+    for key, value in SERVICES.items():
+        for k in key.split(','):
+            if keyword in k.strip().lower():
+                return value
+    return None
+
+def dispatch_message(
+    user_id, 
+    message, 
+    user_states, 
+    user_orders, 
+    driver_id=None, 
+    latitude=None, 
+    longitude=None
+):
     msg = message.strip()
 
     # الحالات الخاصة أولاً
-    if msg in ["99", "٩٩"]:
-        if not user_states.get(user_id, "").startswith("awaiting_order_"):
-            return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
+    if msg in ["99", "٩️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
 
-    # ✅ تعديل هنا: لا ترجع القائمة الرئيسية إذا المستخدم في حالة تسجيل/حذف سائق
+    # لا ترجع القائمة الرئيسية إذا المستخدم في حالة تسجيل/حذف سائق
     driver_states = [
         "awaiting_driver_register",
         "awaiting_driver_name",
@@ -244,23 +254,28 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         if response:
             return response
 
+    # معالجة الاقتراحات والشكاوى
     response = handle_feedback(user_id, msg, user_states)
     if response:
         return response
 
+    # عرض الطلبات المحفوظة
     response = handle_view_orders(user_id, msg, user_orders)
     if response:
         return response
 
+    # إنهاء وإرسال الطلبات
     response = handle_finalize_order(user_id, msg, user_orders)
     if response:
         return response
 
+    # قبول الطلب من قبل السائق
     if driver_id:
         response = handle_driver_accept_order(msg, driver_id, user_states)
         if response:
             return response
 
+    # استقبال الموقع من المستخدم
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response:
         return response
@@ -277,7 +292,13 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
         if response:
             return response
 
-    # الخدمات الأخرى من SERVICES (باستثناء 14)
+    # البحث بالكلمات المفتاحية إذا لم يكن رقم خدمة
+    if not msg.isdigit():
+        result = get_service_by_keyword(msg)
+        if result:
+            return result.get("display_msg", "تم العثور على الخدمة لكن لا توجد رسالة عرض.")
+
+    # الخدمات الأخرى من SERVICES (باستثناء خدمة النقل المدرسي رقم 14)
     if msg.isdigit() and msg in SERVICES and msg != "14":
         service_id = msg
         service_data = SERVICES[service_id]
