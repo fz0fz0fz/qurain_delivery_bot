@@ -216,58 +216,68 @@ def format_search_results(results):
     msg += "🔄 أرسل 0 للعودة للقائمة الرئيسية"
     return msg
 
-def get_service_by_keyword(keyword):
-    # بحث جزئي وغير حساس لحالة الأحرف
-    keyword = keyword.strip().lower()
+def get_service_by_keyword(keyword: str):
+    """بحث جزئي وغير حساس لحالة الأحرف داخل مفاتيح SERVICES المركّبة."""
+    kw = keyword.strip().lower()
     for key, value in SERVICES.items():
         for k in key.split(','):
-            if keyword in k.strip().lower():
+            if kw in k.strip().lower():
                 return value
     return None
 
+
 def dispatch_message(
-    user_id, 
-    message, 
-    user_states, 
-    user_orders, 
-    driver_id=None, 
-    latitude=None, 
+    user_id,
+    message,
+    user_states,
+    user_orders,
+    driver_id=None,
+    latitude=None,
     longitude=None
 ):
-    msg = message.strip()
+    msg = (message or "").strip()
 
-    # الحالات الخاصة أولاً
+    # 1) التحقق من 99 لبدء الطلب داخل خدمة
     if msg in ["99", "٩٩"]:
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
             return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
 
-    # لا ترجع القائمة الرئيسية إذا        "awaiting_driver_phone",
+    # 2) حالات خدمة السائقين/النقل
+    driver_states = [
+        "awaiting_driver_phone",
         "awaiting_driver_description",
         "awaiting_driver_delete_number",
         "awaiting_driver_confirmation_exit",
-        "awaiting_driver_confirmation_exit_with_num"
+        "awaiting_driver_confirmation_exit_with_num",
+        "awaiting_driver_register",
     ]
+
+    # إظهار القائمة الرئيسية فقط إذا لم نكن داخل حالات السائقين
     if user_states.get(user_id) not in driver_states:
         response = handle_main_menu(msg)
-        if response        return response
+        if response:
+            return response
 
-    # عرض الطلبات المحفوظة
+    # 3) عرض الطلبات المحفوظة
     response = handle_view_orders(user_id, msg, user_orders)
     if response:
         return response
 
-    # إنهاء وإرسال الطلبات
+    # 4) إنهاء وإرسال الطلبات
     response = handle_finalize_order(user_id, msg, user_orders)
-    if response:
-        return response # استقبال الموقع من المستخدم
-    response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response:
         return response
 
-    # معالجة منطق النقل المدرسي والمشاوير والسائقين (مع حالة الحذف المضافة)
+    # 5) استقبال الموقع من المستخدم
+    response = handle_user_location(
+        user_id, msg, user_states, latitude=latitude, longitude=longitude
+    )
+    if response:
+        return response
+
+    # 6) معالجة منطق النقل المدرسي/السائقين (14 أو كلمات تخص السائقين)
     if (
         msg == "14"
-        or user_states.get(user_id) == "awaiting_driver_register"
         or msg == "88"
         or msg.startswith("سائق")
         or user_states.get(user_id) in driver_states
@@ -276,18 +286,20 @@ def dispatch_message(
         if response:
             return response
 
-    # البحث بالكلمات المفتاحية إذا لم يكن رقم خدمة
+    # 7) البحث بالكلمات المفتاحية إذا لم يكن رقم خدمة
     if not msg.isdigit():
         result = get_service_by_keyword(msg)
         if result:
             return result.get("display_msg", "تم العثور على الخدمة لكن لا توجد رسالة عرض.")
 
-    # الخدمات الأخرى من SERVICES (باستثناء خدمة and msg in SERVICES and msg != "14":
+    # 8) استدعاء الخدمات الرقمية من SERVICES (باستثناء 14 لأنها للسائقين)
+    if msg.isdigit() and msg in SERVICES and msg != "14":
         service_id = msg
         service_data = SERVICES[service_id]
         if "display_msg" in service_data:
             return service_data["display_msg"]
         else:
+            # ملاحظة: حسب مشروعك، دالة handle_service تستقبل (user_id, message, user_states, user_orders, service_id, service_name, stores_list)
             return handle_service(
                 user_id,
                 msg,
@@ -296,9 +308,7 @@ def dispatch_message(
                 service_id,
                 service_data.get("name", ""),
                 service_data.get("items", []),
-                allowed_service_ids,
-                main_menu_text
             )
 
-    # إذا لم يتحقق أي شرط يرجع None (أو رسالة افتراضية)
+    # 9) لا شيء ينطبق
     return None
