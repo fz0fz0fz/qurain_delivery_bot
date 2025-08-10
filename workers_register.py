@@ -14,14 +14,19 @@ WORKER_CATEGORIES = {
     "8": "أخرى"
 }
 
-# الاتصال بقاعدة PostgreSQL
-def get_pg_connection():
-    return psycopg2.connect(
-        dbname="YOUR_DB",
-        user="YOUR_USER",
-        password="YOUR_PASSWORD",
-        host="YOUR_HOST",
-        port="5432"
+PG_CONN_INFO = {
+    "host": "dpg-d1qf0g24d50c7397llc0-a.oregon-postgres.render.com",
+    "dbname": "remainders",
+    "user": "remainders_user",
+    "password": "c6G6dvxL4Y0PRZtNaZiP0mh2R5QVA0nr",
+    "port": 5432,
+}
+
+def get_pg_connectionPG_CONN_INFO['user'],
+        password=PG_CONN_INFO['password'],
+        host=PG_CONN_INFO['host'],
+        port=PG_CONN_INFO['port'],
+        sslmode="require"
     )
 
 # إنشاء جدول العمال إذا لم يكن موجود
