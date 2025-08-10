@@ -1,3 +1,5 @@
+
+from workers_register import handle_worker_service, WORKER_STATES
 from driver_register import handle_driver_service, delete_driver
 from pg_utils import generate_order_id_pg
 from send_utils import send_message
@@ -271,6 +273,17 @@ def dispatch_message(
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response:
         return response
+
+# معالجة منطق خدمة العمال (service 11)
+    if (
+        msg == "11"
+        or user_states.get(user_id) in WORKER_STATES
+        or msg == "عرض العمال"
+        or msg.startswith("حذف عامل")
+    ):
+        response = handle_worker_service(user_id, msg, user_states)
+        if response:
+            return response
 
     # معالجة منطق النقل المدرسي والمشاوير والسائقين (مع حالة الحذف المضافة)
     if (
