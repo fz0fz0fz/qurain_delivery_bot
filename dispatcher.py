@@ -1,5 +1,5 @@
 
-from workers_register import handle_worker_service, WORKER_STATES
+from workers_register import handle_worker_registration, WORKER_CATEGORIES
 from driver_register import handle_driver_service, delete_driver
 from pg_utils import generate_order_id_pg
 from send_utils import send_message
