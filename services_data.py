@@ -159,10 +159,90 @@ SERVICES = {
         "name": "مطاعم",
         "display_msg": """
 🍔 *قائمة المطاعم في القرين:*
+━━━━━━━━━━━━━━━━━━━
+🍽️ دليلك للمطاعم والوجبات السريعة في القرين
+━━━━━━━━━━━━━━━━━━━
 
-🍗 مطعم الطازج — 📞 0500000008  
-🍕 بيتزا تايم — 📞 0500000009  
-🥙 شاورما هاوس — 📞 0500000010  
+━━━━━━━━━━━━━━━
+🍛 ——— المطاعم ——— 🍛
+━━━━━━━━━━━━━━━
+
+🍴 مطعم لقمة سحاب
+📞 0536777194
+📍 https://maps.app.goo.gl/XcZWVeTQCt46BcWdA
+
+🍴 مطعم المدينة
+📞 0532834828
+📍 https://maps.app.goo.gl/iud8ZDgLRnqvwM99A
+
+🍴 مطعم غاية الرومنسية (الدليمية)
+📞 0162331234
+📍 https://maps.app.goo.gl/FG7JDNxYHKVvJCnh9
+
+━━━━━━━━━━━━━━━
+🍔 ——— الوجبات السريعة ——— 🍔
+━━━━━━━━━━━━━━━
+
+🥪 بوفيه ورد هناء عدن
+📞 0557838324
+📍 https://maps.app.goo.gl/mDjCRKZzii5xhuga6
+
+🥪 بوفية برنس الديرة
+📞 0508206110
+📍 https://maps.app.goo.gl/v2FtTaNuCCrSArZC8
+
+🍕 مطعم زاوية الراقي
+📞 0543053031
+📍 https://maps.app.goo.gl/BV9EkxF3TDebwyRb9
+
+🍔 بارت برقر (الدليمية)
+📞 0537711667
+📍 https://maps.app.goo.gl/UeqjLncboUgf9dgXA
+
+🔥 على الجمر (الدليمية)
+📞 0558881336
+📍 https://maps.app.goo.gl/DKmFWn9HMpcEsWLv9
+
+🌯 الذوق العالمي
+📞 0557322371
+📍 https://maps.app.goo.gl/9Sih7g9WiJivzFJJ8
+
+🍗 البيت الدمشقي
+📞 0552331616
+📍 https://maps.app.goo.gl/mJcVfDv6osxmYaAC6
+
+🥟 رقائق العجينة (الدليمية)
+📞 0558141818
+📍 https://maps.app.goo.gl/47QDiybQdU6UGTdY9
+
+🥮 الفطيرة الشرقية (الدليمية)
+📞 0162331919
+📍 https://maps.app.goo.gl/iikfvTpwKvcKeXw68
+
+🍗 كتكوت الطازج (الدليمية)
+📞 0578004950
+📍 https://maps.app.goo.gl/YhdXGH2tT9wq62Jx5
+
+━━━━━━━━━━━━━━━
+🍖 ——— المطابخ ——— 🍖
+━━━━━━━━━━━━━━━
+
+🥘 مطبخ ذبايح منصور (أبو أيوب)
+📞 0503973617
+📍 https://maps.app.goo.gl/9rLpqgfKR4eUdryG9
+
+🥘 الطبق النجدي
+📞 0530353557
+📍 https://maps.app.goo.gl/fhiHgwJguq1dBtS8A
+
+🥘 مطبخ الخالدية
+📞 0533421042
+📍 https://maps.app.goo.gl/ffmXstVj6MND5A6z5
+
+🥘 مطبخ شيف الديرة (أبو تركي)
+📞 0509097563
+📍 https://maps.app.goo.gl/bresRMFvSxvQ1GM98
+
 
 ━━━━━━━━━━━━━━━
 🔄 أرسل 0 للعودة إلى القائمة الرئيسية
