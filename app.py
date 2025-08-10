@@ -1,6 +1,8 @@
 from flask import Flask, request
 from dispatcher import dispatch_message
 from send_utils import send_message  # تأكد من الاستيراد هنا
+from workers_register import init_workers_table
+init_workers_table()
 
 app = Flask(__name__)
 
