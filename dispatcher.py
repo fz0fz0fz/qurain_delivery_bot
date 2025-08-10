@@ -274,16 +274,27 @@ def dispatch_message(
     if response:
         return response
 
-# معالجة منطق خدمة العمال (service 11)
-    if (
-        msg == "11"
-        or user_states.get(user_id) in WORKER_STATES
-        or msg == "عرض العمال"
-        or msg.startswith("حذف عامل")
-    ):
-        response = handle_worker_service(user_id, msg, user_states)
-        if response:
-            return response
+from workers_register import (
+    get_worker_categories,
+    get_workers_by_category,
+    handle_worker_registration
+)
+
+# داخل dispatch_message قبل البحث بالكلمات
+if msg == "11":  # عرض المهن
+    return get_worker_categories()
+
+if msg.isdigit() and msg in ["1", "2", "3", "4", "5", "6", "7", "8"]:
+    return get_workers_by_category(msg)
+
+if msg == "55":  # تسجيل عامل جديد
+    user_states[user_id] = "awaiting_worker_category"
+    return get_worker_categories() + "\n\nاختر مهنة العامل (بالرقم أو الاسم):"
+
+# متابعة عملية التسجيل
+response = handle_worker_registration(user_id, msg, user_states)
+if response:
+    return response
 
     # معالجة منطق النقل المدرسي والمشاوير والسائقين (مع حالة الحذف المضافة)
     if (
