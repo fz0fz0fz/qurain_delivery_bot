@@ -217,6 +217,12 @@ def format_search_results(results):
     msg += "🔄 أرسل 0 للعودة للقائمة الرئيسية"
     return msg
 
+from workers_register import (
+    get_worker_categories,
+    get_workers_by_category,
+    handle_worker_registration
+)
+
 def dispatch_message(
     user_id, 
     message, 
@@ -228,10 +234,28 @@ def dispatch_message(
 ):
     msg = message.strip()
 
-    # الحالات الخاصة أولاً
+    # حالات خاصة أولاً
     if msg in ["99", "٩٩"]:
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
             return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
+
+    # حالة عرض قائمة المهن (خدمة العمال)
+    if msg == "11":  # عرض المهن
+        return get_worker_categories()
+
+    # عرض عمال حسب المهنة
+    if msg.isdigit() and msg in ["1", "2", "3", "4", "5", "6", "7", "8"]:
+        return get_workers_by_category(msg)
+
+    # بدء تسجيل عامل جديد
+    if msg == "55":
+        user_states[user_id] = "awaiting_worker_category"
+        return get_worker_categories() + "\n\nاختر مهنة العامل (بالرقم أو الاسم):"
+
+    # متابعة تسجيل العامل (اسم، رقم)
+    response = handle_worker_registration(user_id, msg, user_states)
+    if response:
+        return response
 
     # لا ترجع القائمة الرئيسية إذا المستخدم في حالة تسجيل/حذف سائق
     driver_states = [
@@ -273,28 +297,6 @@ def dispatch_message(
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
     if response:
         return response
-
-from workers_register import (
-    get_worker_categories,
-    get_workers_by_category,
-    handle_worker_registration
-)
-
-# داخل dispatch_message قبل البحث بالكلمات
-if msg == "11":  # عرض المهن
-    return get_worker_categories()
-
-if msg.isdigit() and msg in ["1", "2", "3", "4", "5", "6", "7", "8"]:
-    return get_workers_by_category(msg)
-
-if msg == "55":  # تسجيل عامل جديد
-    user_states[user_id] = "awaiting_worker_category"
-    return get_worker_categories() + "\n\nاختر مهنة العامل (بالرقم أو الاسم):"
-
-# متابعة عملية التسجيل
-response = handle_worker_registration(user_id, msg, user_states)
-if response:
-    return response
 
     # معالجة منطق النقل المدرسي والمشاوير والسائقين (مع حالة الحذف المضافة)
     if (
