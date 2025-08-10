@@ -1,7 +1,8 @@
+import psycopg2
 import sqlite3
 from datetime import datetime
 
-# بيانات الاتصال بقاعدة بيانات PostgreSQL (للاستخدام لاحقاً في دوال PostgreSQL)
+# --- إعدادات اتصال PostgreSQL (العمال) ---
 PG_CONN_INFO = {
     "host": "dpg-d1qf0g24d50c7397llc0-a.oregon-postgres.render.com",
     "dbname": "remainders",
@@ -10,12 +11,70 @@ PG_CONN_INFO = {
     "port": 5432,
 }
 
+def get_pg_conn():
+    return psycopg2.connect(
+        host=PG_CONN_INFO['host'],
+        dbname=PG_CONN_INFO['dbname'],
+        user=PG_CONN_INFO['user'],
+        password=PG_CONN_INFO['password'],
+        port=PG_CONN_INFO['port']
+    )
+
+# ========================
+# دوال PostgreSQL (العمال)
+# ========================
+
+def insert_worker(section, name, phone):
+    conn = get_pg_conn()
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO workers (section, name, phone) VALUES (%s, %s, %s)",
+        (section, name, phone)
+    )
+    conn.commit()
+    conn.close()
+
+def get_workers_by_section(section):
+    conn = get_pg_conn()
+    c = conn.cursor()
+    c.execute(
+        "SELECT id, name, phone FROM workers WHERE section = %s ORDER BY id ASC", 
+        (section,)
+    )
+    results = c.fetchall()
+    conn.close()
+    return [{"id": row[0], "name": row[1], "phone": row[2]} for row in results]
+
+def is_worker_phone(phone):
+    conn = get_pg_conn()
+    c = conn.cursor()
+    patterns = [phone, phone.replace("966", "0", 1), phone.replace("0", "966", 1)]
+    c.execute(
+        "SELECT COUNT(*) FROM workers WHERE phone = %s OR phone = %s OR phone = %s", 
+        (patterns[0], patterns[1], patterns[2])
+    )
+    count = c.fetchone()[0]
+    conn.close()
+    return count > 0
+
+def delete_worker(worker_id):
+    conn = get_pg_conn()
+    c = conn.cursor()
+    c.execute(
+        "DELETE FROM workers WHERE id = %s", (worker_id,)
+    )
+    conn.commit()
+    conn.close()
+
+# =======================
+# إعدادات SQLite (الطلبات)
+# =======================
+
 DB_PATH = "orders.db"
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    # إنشاء جدول الطلبات
     c.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,13 +86,12 @@ def init_db():
             order_number TEXT
         )
     ''')
-    # إنشاء جدول ربط الطلب بالمندوب
-    c.execute("""
+    c.execute('''
         CREATE TABLE IF NOT EXISTS order_drivers (
             order_number TEXT PRIMARY KEY,
             driver_id TEXT NOT NULL
         )
-    """)
+    ''')
     conn.commit()
     conn.close()
 
@@ -95,14 +153,7 @@ def get_all_orders(user_id):
     conn.close()
     return orders
 
-#######################
-# دوال جدول order_drivers
-#######################
-
 def assign_driver_to_order(order_number, driver_id):
-    """
-    تربط رقم الطلب بالمندوب في جدول order_drivers
-    """
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -113,9 +164,6 @@ def assign_driver_to_order(order_number, driver_id):
     conn.close()
 
 def get_driver_for_order(order_number):
-    """
-    ترجع رقم المندوب المرتبط بالطلب (إن وجد)
-    """
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -129,9 +177,6 @@ def get_driver_for_order(order_number):
         return None
 
 def get_orders_for_driver(driver_id):
-    """
-    ترجع قائمة أرقام الطلبات المرتبطة بمندوب معيّن
-    """
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -141,4 +186,5 @@ def get_orders_for_driver(driver_id):
     conn.close()
     return [row[0] for row in results]
 
-# لا تنسَ استدعاء init_db() مرة واحدة عند تشغيل السيرفر أول مرة
+# --- تأكد من تهيئة قاعدة بيانات SQLite عند بدء التشغيل ---
+init_db()
