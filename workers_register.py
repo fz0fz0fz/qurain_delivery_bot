@@ -1,108 +1,108 @@
 # workers_register.py
 import psycopg2
 from send_utils import send_message
-from pg_utils import get_pg_connection
 
-# الحالات الخاصة بالعمال
-WORKER_STATES = [
-    "awaiting_worker_register",
-    "awaiting_worker_name",
-    "awaiting_worker_phone",
-    "awaiting_worker_description",
-    "awaiting_worker_delete_number",
-    "awaiting_worker_confirmation_exit",
-    "awaiting_worker_confirmation_exit_with_num"
-]
+# قائمة المهن
+WORKER_CATEGORIES = {
+    "1": "سباكين",
+    "2": "كهربائيين",
+    "3": "نجارين",
+    "4": "حدادين",
+    "5": "دهانين",
+    "6": "بلاط",
+    "7": "تنظيف",
+    "8": "أخرى"
+}
 
+# الاتصال بقاعدة PostgreSQL
+def get_pg_connection():
+    return psycopg2.connect(
+        dbname="YOUR_DB",
+        user="YOUR_USER",
+        password="YOUR_PASSWORD",
+        host="YOUR_HOST",
+        port="5432"
+    )
+
+# إنشاء جدول العمال إذا لم يكن موجود
 def init_workers_table():
-    """إنشاء جدول العمال في PostgreSQL إذا لم يكن موجود."""
     conn = get_pg_connection()
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS workers (
             id SERIAL PRIMARY KEY,
-            worker_name TEXT NOT NULL,
+            name TEXT NOT NULL,
             phone TEXT NOT NULL,
-            description TEXT,
-            created_at TIMESTAMP DEFAULT NOW()
+            category TEXT NOT NULL
         )
     """)
     conn.commit()
+    cur.close()
     conn.close()
 
-def add_worker(worker_name, phone, description):
-    conn = get_pg_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO workers (worker_name, phone, description) VALUES (%s, %s, %s)",
-        (worker_name, phone, description)
-    )
-    conn.commit()
-    conn.close()
+# عرض قائمة المهن
+def get_worker_categories():
+    msg = "*👷 قائمة المهن المتاحة:*\n"
+    for num, name in WORKER_CATEGORIES.items():
+        msg += f"{num}. {name}\n"
+    msg += "━━━━━━━━━━━━━━━\n"
+    msg += "📌 للتسجيل كعامل أرسل `55`"
+    return msg
 
-def delete_worker_by_phone(phone):
+# عرض عمال مهنة معينة
+def get_workers_by_category(category_key):
+    category_name = WORKER_CATEGORIES.get(category_key) or category_key
     conn = get_pg_connection()
     cur = conn.cursor()
-    cur.execute("DELETE FROM workers WHERE phone = %s", (phone,))
-    deleted = cur.rowcount
-    conn.commit()
-    conn.close()
-    return deleted > 0
-
-def list_workers():
-    conn = get_pg_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT worker_name, phone, description FROM workers ORDER BY created_at DESC")
+    cur.execute("SELECT name, phone FROM workers WHERE category = %s", (category_name,))
     rows = cur.fetchall()
+    cur.close()
     conn.close()
-    return rows
 
-def handle_worker_service(user_id, message, user_states):
-    """التعامل مع رسائل المستخدم الخاصة بخدمة العمال."""
-    msg = message.strip()
+    if not rows:
+        return f"📭 لا يوجد عمال مسجلين في *{category_name}* حتى الآن."
+    
+    msg = f"*👷 قائمة {category_name}:*\n"
+    for name, phone in rows:
+        msg += f"- {name} 📞 {phone}\n"
+    return msg
 
-    # بدء التسجيل
-    if msg == "11":
-        user_states[user_id] = "awaiting_worker_register"
-        return "👷 أهلاً بك في خدمة العمال.\n📋 أرسل اسم العامل للتسجيل."
+# حفظ عامل جديد
+def save_worker(name, phone, category_key):
+    category_name = WORKER_CATEGORIES.get(category_key) or category_key
+    conn = get_pg_connection()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO workers (name, phone, category) VALUES (%s, %s, %s)",
+                (name, phone, category_name))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return f"✅ تم حفظ العامل *{name}* في قسم *{category_name}* بنجاح."
 
-    # إدخال الاسم
-    if user_states.get(user_id) == "awaiting_worker_register":
-        user_states[user_id] = "awaiting_worker_name"
-        user_states[f"{user_id}_temp_name"] = msg
-        return "📞 أرسل رقم هاتف العامل."
+# معالجة تسجيل عامل
+def handle_worker_registration(user_id, message, user_states):
+    state = user_states.get(user_id)
 
-    # إدخال الهاتف
-    if user_states.get(user_id) == "awaiting_worker_name":
-        user_states[user_id] = "awaiting_worker_phone"
-        user_states[f"{user_id}_temp_phone"] = msg
-        return "📝 أرسل وصفًا قصيرًا لمهارة العامل أو تخصصه."
-
-    # إدخال الوصف وإضافة العامل
-    if user_states.get(user_id) == "awaiting_worker_phone":
-        name = user_states.pop(f"{user_id}_temp_name", "")
-        phone = user_states.pop(f"{user_id}_temp_phone", "")
-        description = msg
-        add_worker(name, phone, description)
-        user_states.pop(user_id, None)
-        return f"✅ تم تسجيل العامل:\n👷 {name}\n📞 {phone}\n📝 {description}"
-
-    # عرض قائمة العمال
-    if msg == "عرض العمال":
-        workers = list_workers()
-        if not workers:
-            return "📭 لا يوجد عمال مسجلون."
-        response = "📋 *قائمة العمال المسجلين:*\n\n"
-        for w_name, w_phone, w_desc in workers:
-            response += f"👷 {w_name}\n📞 {w_phone}\n📝 {w_desc or '—'}\n\n"
-        return response
-
-    # حذف عامل
-    if msg.startswith("حذف عامل"):
-        phone_to_delete = msg.replace("حذف عامل", "").strip()
-        if delete_worker_by_phone(phone_to_delete):
-            return f"🗑 تم حذف العامل برقم {phone_to_delete} بنجاح."
+    # اختيار المهنة
+    if state == "awaiting_worker_category":
+        category_key = message.strip()
+        if category_key in WORKER_CATEGORIES or category_key in WORKER_CATEGORIES.values():
+            user_states[user_id] = f"awaiting_worker_name|{category_key}"
+            return "✍️ أدخل اسم العامل:"
         else:
-            return "🚫 لم يتم العثور على عامل بهذا الرقم."
+            return "🚫 مهنة غير صحيحة، حاول مرة أخرى."
+
+    # إدخال اسم العامل
+    elif state and state.startswith("awaiting_worker_name"):
+        _, category_key = state.split("|")
+        user_states[user_id] = f"awaiting_worker_phone|{category_key}|{message.strip()}"
+        return "📞 أدخل رقم العامل:"
+
+    # إدخال رقم العامل
+    elif state and state.startswith("awaiting_worker_phone"):
+        _, category_key, worker_name = state.split("|", 2)
+        worker_phone = message.strip()
+        user_states.pop(user_id, None)
+        return save_worker(worker_name, worker_phone, category_key)
 
     return None
