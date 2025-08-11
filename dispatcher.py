@@ -239,23 +239,41 @@ def dispatch_message(
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
             return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
 
-    # حالة عرض قائمة المهن (خدمة العمال)
-    if msg == "11":  # عرض المهن
-        return get_worker_categories()
+     # إلغاء عام داخل قوائم العمال أو التسجيل
+    if msg == "0":
+        # امسح أي حالة خاصة بالعمال إن وجدت
+        if user_states.get(user_id, "").startswith(("awaiting_worker_", "workers_menu")):
+            user_states.pop(user_id, None)
+            # استدعِ هنا دالة القائمة الرئيسية لديك (افترض اسمها main_menu() أو استبدل)
+            return main_menu() if 'main_menu' in globals() else "🔙 عدت للقائمة الرئيسية."
+        # باقي المعالجة العامة (صفر كرجوع) ربما عندك بالفعل في مكان آخر
+        # لو لديك منطق رجوع عام، تأكد عدم تكراره
 
-    # عرض عمال حسب المهنة
-    if msg.isdigit() and msg in ["1", "2", "3", "4", "5", "6", "7", "8"]:
-        return get_workers_by_category(msg)
+    # إعطاء أولوية لمعالجة تدفق التسجيل قبل اعتراض أرقام 1..8
+    reg_response = handle_worker_registration(user_id, msg, user_states)
+    if reg_response:
+        return reg_response
+
+    # دخول خدمة العمال
+    if msg == "11":
+        user_states[user_id] = "workers_menu"
+        return get_worker_categories(context="browse")
 
     # بدء تسجيل عامل جديد
     if msg == "55":
         user_states[user_id] = "awaiting_worker_category"
-        return get_worker_categories() + "\n\nاختر مهنة العامل (بالرقم أو الاسم):"
+        return get_worker_categories(context="register")
 
-    # متابعة تسجيل العامل (اسم، رقم)
-    response = handle_worker_registration(user_id, msg, user_states)
-    if response:
-        return response
+    # داخل وضع تصفح العمال (وليس التسجيل)
+    if user_states.get(user_id) == "workers_menu" and msg in ("1","2","3","4","5","6","7","8"):
+        return get_workers_by_category(msg)
+
+    # إذا المستخدم ليس في workers_menu ولكن كتب 1..8 وكان يريد عرض (ربما من خارج السياق)
+    if msg in ("1","2","3","4","5","6","7","8") and user_states.get(user_id,"") == "":
+        # هنا هذه الأرقام قد تكون خدمات أخرى في القائمة الرئيسية، فلا نلتقطها
+        # اتركها تمر للمنطق الأقدم (بعد هذا المقطع) أو تجاهل
+        pass
+
 
     # لا ترجع القائمة الرئيسية إذا المستخدم في حالة تسجيل/حذف سائق
     driver_states = [
