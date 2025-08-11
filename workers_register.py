@@ -1,6 +1,5 @@
 # workers_register.py
 import psycopg2
-from send_utils import send_message
 
 # قائمة المهن
 WORKER_CATEGORIES = {
@@ -22,10 +21,13 @@ PG_CONN_INFO = {
     "port": 5432,
 }
 
-def get_pg_connectionPG_CONN_INFO['user'],
-        password=PG_CONN_INFO['password'],
-        host=PG_CONN_INFO['host'],
-        port=PG_CONN_INFO['port'],
+def get_pg_connection():
+    return psycopg2.connect(
+        host=PG_CONN_INFO["host"],
+        dbname=PG_CONN_INFO["dbname"],
+        user=PG_CONN_INFO["user"],
+        password=PG_CONN_INFO["password"],
+        port=PG_CONN_INFO["port"],
         sslmode="require"
     )
 
