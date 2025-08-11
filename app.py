@@ -14,10 +14,14 @@ def index():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
-    # print("بيانات الواتساب الواردة:", data)  # يمكنك حذف هذا أيضاً إذا انتهيت من الفحص
 
     if not data:
         return "❌ No data received", 400
+
+    # إذا كان هذا اختبار Webhook من WaSenderAPI
+    if data.get("event") == "webhook.test":
+        print("📩 Received test webhook:", data)
+        return {"status": "test ok"}, 200
 
     payload = data.get("data", {})
 
