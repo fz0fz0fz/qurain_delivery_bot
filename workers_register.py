@@ -1,7 +1,7 @@
-# workers_register.py
+import os
 import psycopg2
+from psycopg2 import errors
 
-# قائمة المهن
 WORKER_CATEGORIES = {
     "1": "سباكين",
     "2": "كهربائيين",
@@ -14,11 +14,11 @@ WORKER_CATEGORIES = {
 }
 
 PG_CONN_INFO = {
-    "host": "dpg-d1qf0g24d50c7397llc0-a.oregon-postgres.render.com",
-    "dbname": "remainders",
-    "user": "remainders_user",
-    "password": "c6G6dvxL4Y0PRZtNaZiP0mh2R5QVA0nr",
-    "port": 5432,
+    "host": os.environ.get("PG_HOST", "dpg-d1qf0g24d50c7397llc0-a.oregon-postgres.render.com"),
+    "dbname": os.environ.get("PG_DB", "remainders"),
+    "user": os.environ.get("PG_USER", "remainders_user"),
+    "password": os.environ.get("PG_PASSWORD", "c6G6dvxL4Y0PRZtNaZiP0mh2R5QVA0nr"),
+    "port": int(os.environ.get("PG_PORT", "5432")),
 }
 
 def get_pg_connection():
@@ -31,7 +31,6 @@ def get_pg_connection():
         sslmode="require"
     )
 
-# إنشاء جدول العمال إذا لم يكن موجود
 def init_workers_table():
     conn = get_pg_connection()
     cur = conn.cursor()
@@ -43,73 +42,142 @@ def init_workers_table():
             category TEXT NOT NULL
         )
     """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_workers_category ON workers (category)")
+    cur.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_indexes WHERE indexname = 'uniq_worker_phone_category'
+            ) THEN
+                CREATE UNIQUE INDEX uniq_worker_phone_category ON workers (phone, category);
+            END IF;
+        END;
+        $$;
+    """)
     conn.commit()
     cur.close()
     conn.close()
 
-# عرض قائمة المهن
-def get_worker_categories():
-    msg = "*👷 قائمة المهن المتاحة:*\n"
-    for num, name in WORKER_CATEGORIES.items():
-        msg += f"{num}. {name}\n"
-    msg += "━━━━━━━━━━━━━━━\n"
-    msg += "📌 للتسجيل كعامل أرسل `55`"
-    return msg
+def resolve_category(key: str) -> str:
+    key = key.strip()
+    if key in WORKER_CATEGORIES:
+        return WORKER_CATEGORIES[key]
+    if key in WORKER_CATEGORIES.values():
+        return key
+    return ""
 
-# عرض عمال مهنة معينة
+def get_worker_categories(context="browse"):
+    """
+    context = browse | register
+    """
+    header = "👷 قائمة المهن المتاحة:\n"
+    body = ""
+    for num, name in WORKER_CATEGORIES.items():
+        body += f"{num}. {name}\n"
+    footer = ""
+    if context == "browse":
+        footer = (
+            "━━━━━━━━━━━━━━━\n"
+            "➡️ أرسل رقم المهنة لعرض العمال.\n"
+            "🆕 للتسجيل كعامل أرسل 55.\n"
+            "🔄 للرجوع للقائمة الرئيسية أرسل 0."
+        )
+    else:  # register
+        footer = (
+            "━━━━━━━━━━━━━━━\n"
+            "✅ أرسل رقم المهنة أو اسمها لاختيارها.\n"
+            "❌ للإلغاء والرجوع أرسل 0."
+        )
+    return f"{header}{body}{footer}"
+
 def get_workers_by_category(category_key):
-    category_name = WORKER_CATEGORIES.get(category_key) or category_key
+    category_name = resolve_category(category_key)
+    if not category_name:
+        return "🚫 مهنة غير معروفة. أرسل 11 لعرض المهن."
     conn = get_pg_connection()
     cur = conn.cursor()
-    cur.execute("SELECT name, phone FROM workers WHERE category = %s", (category_name,))
+    cur.execute("SELECT name, phone FROM workers WHERE category = %s ORDER BY id DESC", (category_name,))
     rows = cur.fetchall()
     cur.close()
     conn.close()
-
     if not rows:
-        return f"📭 لا يوجد عمال مسجلين في *{category_name}* حتى الآن."
-    
-    msg = f"*👷 قائمة {category_name}:*\n"
+        return (
+            f"📭 لا يوجد عمال مسجلين في {category_name}.\n"
+            "🆕 لتسجيل عامل أرسل 55\n"
+            "🔄 للرجوع أرسل 11 أو 0 للقائمة الرئيسية."
+        )
+    msg = f"👷 قائمة {category_name}:\n"
     for name, phone in rows:
         msg += f"- {name} 📞 {phone}\n"
+    msg += "━━━━━━━━━━━━━━━\n"
+    msg += "🔄 أرسل 11 للمهن | 55 للتسجيل | 0 للقائمة الرئيسية"
     return msg
 
-# حفظ عامل جديد
+def normalize_phone(raw_phone: str) -> str:
+    p = "".join(ch for ch in raw_phone if ch.isdigit() or ch == '+')
+    if p.startswith("00"):
+        p = "+" + p[2:]
+    if p.startswith("05"):
+        p = "966" + p[1:]
+    return p
+
 def save_worker(name, phone, category_key):
-    category_name = WORKER_CATEGORIES.get(category_key) or category_key
+    category_name = resolve_category(category_key)
+    if not category_name:
+        return "🚫 مهنة غير صالحة."
+    phone_clean = normalize_phone(phone)
     conn = get_pg_connection()
     cur = conn.cursor()
-    cur.execute("INSERT INTO workers (name, phone, category) VALUES (%s, %s, %s)",
-                (name, phone, category_name))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return f"✅ تم حفظ العامل *{name}* في قسم *{category_name}* بنجاح."
+    try:
+        cur.execute(
+            "INSERT INTO workers (name, phone, category) VALUES (%s, %s, %s)",
+            (name.strip(), phone_clean, category_name)
+        )
+        conn.commit()
+        return (
+            f"✅ تم حفظ العامل {name.strip()} في قسم {category_name}.\n"
+            "📋 لعرض نفس القسم أرسل رقمه.\n"
+            "🔄 أرسل 11 للمهن أو 0 للقائمة الرئيسية."
+        )
+    except errors.UniqueViolation:
+        conn.rollback()
+        return "⚠️ هذا الرقم مسجل سابقاً في نفس القسم."
+    except Exception as e:
+        conn.rollback()
+        return f"❗ حدث خطأ أثناء الحفظ: {e}"
+    finally:
+        cur.close()
+        conn.close()
 
-# معالجة تسجيل عامل
 def handle_worker_registration(user_id, message, user_states):
     state = user_states.get(user_id)
+    msg = message.strip()
 
-    # اختيار المهنة
-    if state == "awaiting_worker_category":
-        category_key = message.strip()
-        if category_key in WORKER_CATEGORIES or category_key in WORKER_CATEGORIES.values():
-            user_states[user_id] = f"awaiting_worker_name|{category_key}"
-            return "✍️ أدخل اسم العامل:"
-        else:
-            return "🚫 مهنة غير صحيحة، حاول مرة أخرى."
-
-    # إدخال اسم العامل
-    elif state and state.startswith("awaiting_worker_name"):
-        _, category_key = state.split("|")
-        user_states[user_id] = f"awaiting_worker_phone|{category_key}|{message.strip()}"
-        return "📞 أدخل رقم العامل:"
-
-    # إدخال رقم العامل
-    elif state and state.startswith("awaiting_worker_phone"):
-        _, category_key, worker_name = state.split("|", 2)
-        worker_phone = message.strip()
+    # الإلغاء العام داخل تدفق التسجيل
+    if msg == "0":
         user_states.pop(user_id, None)
-        return save_worker(worker_name, worker_phone, category_key)
+        return "↩️ تم الإلغاء. أرسل 11 لعرض المهن أو 0 للقائمة الرئيسية."
+
+    if state == "awaiting_worker_category":
+        category_name = resolve_category(msg)
+        if category_name:
+            user_states[user_id] = f"awaiting_worker_name|{category_name}"
+            return f"✍️ أدخل اسم العامل المراد تسجيله في قسم {category_name}:\n❌ للإلغاء أرسل 0."
+        else:
+            return "🚫 مهنة غير صحيحة. أعد المحاولة أو أرسل 0 للإلغاء."
+
+    if state and state.startswith("awaiting_worker_name"):
+        _, category_name = state.split("|", 1)
+        if not msg:
+            return "🚫 الاسم فارغ. أعد الإدخال أو أرسل 0 للإلغاء."
+        user_states[user_id] = f"awaiting_worker_phone|{category_name}|{msg}"
+        return "📞 أرسل رقم العامل:\n❌ للإلغاء أرسل 0."
+
+    if state and state.startswith("awaiting_worker_phone"):
+        _, category_name, worker_name = state.split("|", 2)
+        if len(msg) < 5:
+            return "🚫 رقم غير صالح. أعد الإدخال أو أرسل 0 للإلغاء."
+        user_states.pop(user_id, None)
+        return save_worker(worker_name, msg, category_name)
 
     return None
