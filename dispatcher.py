@@ -1,4 +1,3 @@
-from workers_register import handle_worker_registration, WORKER_CATEGORIES
 from driver_register import handle_driver_service, delete_driver
 from pg_utils import generate_order_id_pg
 from send_utils import send_message
@@ -6,9 +5,7 @@ from services.unified_service import handle_service
 import sqlite3
 import re
 from search_utils import search_services_arabic
-from services_data import SERVICES, get_service_by_keyword  # >>> محلات: نحتاج get_service_by_keyword
-# >>> استيراد منطق المحلات
-from shops_service import handle_shops, handle_location_message  # تأكد من وجود الملف
+from services_data import SERVICES
 
 allowed_service_ids = {
     "1": "حكومي",
@@ -177,7 +174,6 @@ def handle_driver_accept_order(message, driver_id, user_states):
     return None
 
 def handle_user_location(user_id, message, user_states, latitude=None, longitude=None):
-    # منطق موقع الطلبات (السائقين)
     if user_states.get(user_id) == "awaiting_location":
         conn = sqlite3.connect('orders.db')
         c = conn.cursor()
@@ -219,153 +215,49 @@ def format_search_results(results):
     msg += "🔄 أرسل 0 للعودة للقائمة الرئيسية"
     return msg
 
-from workers_register import (
-    get_worker_categories,
-    get_workers_by_category,
-    handle_worker_registration
-)
-
-# >>> دالة مساعدة داخلية لاكتشاف أن الرسالة تخص خدمة المحلات
-def is_shops_command(msg: str) -> bool:
-    m = msg.strip()
-    if m in ("7","77"):
-        return True
-    prefixes = ("حذف ","delete ","del ","تفاصيل ","عرض ","تعديل ","بحث ","تصدير")
-    return any(m.lower().startswith(p) for p in prefixes)
-
-def dispatch_message(
-    user_id,
-    message,
-    user_states,
-    user_orders,
-    driver_id=None,
-    latitude=None,
-    longitude=None
-):
+def dispatch_message(user_id, message, user_states, user_orders, driver_id=None, latitude=None, longitude=None):
     msg = message.strip()
 
-    # >>> استقبال موقع لخدمة المحلات (أولاً قبل شيء آخر لو وصل lat/long وكان المستخدم في مرحلة الخرائط ضمن shops_service)
-    # نحاول فقط إذا لدينا إحداثيات
-    if latitude is not None and longitude is not None:
-        # نحاول تمريرها إلى منطق المحلات؛ إذا لم تكن الحالة صحيحة سيعيد رسالة افتراضية ولا يضر
-        resp_loc_shops = handle_location_message(user_id, latitude, longitude)
-        # handle_location_message يعيد رسائل خطأ لو المستخدم ليس في خطوة الموقع
-        # نتحقق إن كانت تحتوي على "تم استلام الموقع" أو "تم استلام" أو "البدء" لتمييز أنها تخص المحلات
-        if "تم استلام الموقع" in resp_loc_shops or "تم استلام" in resp_loc_shops:
-            return resp_loc_shops
-        # لو ما كانت تخص المحلات نستمر كالمعتاد (قد تكون للطلبات - السائقين)
-        # بعد ذلك نمر على منطق الطلبات
-        pass
-
-    # حالات خاصة أولاً
+    # الحالات الخاصة أولاً
     if msg in ["99", "٩٩"]:
         if not user_states.get(user_id, "").startswith("awaiting_order_"):
             return "❗️يجب اختيار خدمة من القائمة أولًا ثم الضغط 99 لإضافة طلب."
 
-    # إلغاء عام داخل قوائم العمال أو التسجيل
-    if msg == "0":
-        if user_states.get(user_id, "").startswith(("awaiting_worker_", "workers_menu")):
-            user_states.pop(user_id, None)
-            return main_menu_text
-        # صفر أيضاً يمر لاحقاً على handle_main_menu
-
-    # >>> اعتراض أوامر المحلات قبل أي شيء آخر (حتى لا تستهلكها خدمات أخرى)
-    if is_shops_command(msg):
-        return handle_shops(user_id, msg)
-
-    # >>> إذا سبق للمستخدم أن دخل المحلات وواصل (الحالة تدار داخل shops_service)،
-    #     يمكننا اكتشاف ذلك بعدم وجود حالة خاصة لكن يرسل أوامر فرعية. نعيد تمريرها.
-    #     (في حال أردت تتبع خاص يمكنك إضافة user_states['current_service']="7" عند أول دخول)
-    # هنا سنحاول تمرير أي رسالة إذا كانت آخر رسالة له كانت محلات (يمكنك تطوير تتبع لاحقاً)
-    # (تركناه بسيطاً الآن)
-
-    # إعطاء أولوية لمعالجة تدفق التسجيل قبل اعتراض أرقام 1..8
-    reg_response = handle_worker_registration(user_id, msg, user_states)
-    if reg_response:
-        return reg_response
-
-    # دخول خدمة العمال
-    if msg == "11":
-        user_states[user_id] = "workers_menu"
-        return get_worker_categories(context="browse")
-
-    # بدء تسجيل عامل جديد
-    if msg == "55":
-        user_states[user_id] = "awaiting_worker_category"
-        return get_worker_categories(context="register")
-
-    # داخل وضع تصفح العمال
-    if user_states.get(user_id) == "workers_menu" and msg in ("1","2","3","4","5","6","7","8"):
-        return get_workers_by_category(msg)
-
-    # إذا المستخدم ليس في workers_menu ولكن كتب 1..8 وكان يريد عرض (لا نتدخل ونتركه يمر)
-    if msg in ("1","2","3","4","5","6","7","8") and user_states.get(user_id,"") == "":
-        pass
-
-    # لا ترجع القائمة الرئيسية إذا المستخدم في حالة تسجيل/حذف سائق
-    driver_states = [
-        "awaiting_driver_register",
-        "awaiting_driver_name",
-        "awaiting_driver_phone",
-        "awaiting_driver_description",
-        "awaiting_driver_delete_number",
-        "awaiting_driver_confirmation_exit",
-        "awaiting_driver_confirmation_exit_with_num"
-    ]
-    if user_states.get(user_id) not in driver_states:
-        response = handle_main_menu(msg)
-        if response:
-            return response
-
-    # الاقتراحات والشكاوى
+    response = handle_main_menu(msg)
+    if response: return response
     response = handle_feedback(user_id, msg, user_states)
-    if response:
-        return response
-
-    # عرض الطلبات
+    if response: return response
     response = handle_view_orders(user_id, msg, user_orders)
-    if response:
-        return response
-
-    # إنهاء وإرسال الطلبات
+    if response: return response
     response = handle_finalize_order(user_id, msg, user_orders)
-    if response:
-        return response
-
-    # قبول الطلب من قبل السائق
+    if response: return response
     if driver_id:
         response = handle_driver_accept_order(msg, driver_id, user_states)
-        if response:
-            return response
-
-    # استقبال الموقع (منطق الطلبات - السائقين)
+        if response: return response
     response = handle_user_location(user_id, msg, user_states, latitude=latitude, longitude=longitude)
-    if response:
-        return response
+    if response: return response
 
-    # منطق النقل المدرسي والمشاوير والسائقين
+    # معالجة منطق النقل المدرسي والمشاوير والسائقين (مع حالة الحذف المضافة)
     if (
         msg == "14"
         or user_states.get(user_id) == "awaiting_driver_register"
         or msg == "88"
         or msg.startswith("سائق")
-        or user_states.get(user_id) in driver_states
+        or user_states.get(user_id) in [
+            "awaiting_driver_name",
+            "awaiting_driver_phone",
+            "awaiting_driver_description",
+            "awaiting_driver_delete_number"
+        ]
     ):
         response = handle_driver_service(user_id, msg, user_states)
         if response:
             return response
 
-    # البحث بالكلمات المفتاحية (إن لم تكن أرقام خدمة)
-    if not msg.isdigit():
-        result = get_service_by_keyword(msg)
-        if result:
-            return result.get("display_msg", "تم العثور على الخدمة لكن لا توجد رسالة عرض.")
-
-    # الخدمات الأخرى (باستثناء 7 لأنها external)
-    if msg.isdigit() and msg in SERVICES and msg not in ("14", "7"):
+    # الخدمات الأخرى من SERVICES (باستثناء 14)
+    if msg.isdigit() and msg in SERVICES and msg != "14":
         service_id = msg
         service_data = SERVICES[service_id]
-        # عرض ثابت
         if "display_msg" in service_data:
             return service_data["display_msg"]
         else:
@@ -381,5 +273,6 @@ def dispatch_message(
                 main_menu_text
             )
 
-    # لو لم يتحقق أي شيء
-    return None
+    # البحث الذكي في الخدمات
+    results = search_services_arabic(msg, SERVICES)
+    return format_search_results(results)
