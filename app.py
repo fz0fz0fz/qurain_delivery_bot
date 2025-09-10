@@ -4,16 +4,13 @@ from send_utils import send_message  # تأكد من وجودها
 
 app = Flask(__name__)
 
-# تخزين حالة المستخدم وطلبات المستخدمين
 user_states = {}
 user_orders = {}
 
-# صفحة اختبارية للتأكد من أن السيرفر شغال
 @app.route("/", methods=["GET"])
 def index():
     return "🚀 Qurain Delivery Bot is Live!"
 
-# Webhook لاستقبال الرسائل
 @app.route("/webhook", methods=["POST"])
 def webhook():
     try:
@@ -22,27 +19,25 @@ def webhook():
         print("Error parsing JSON:", e)
         return "Invalid JSON", 400
 
-    print("Received data:", data)  # هنا يظهر البيانات المستقبلة في السجل
+    print("Received data:", data)  # تأكد أن هذا السطر داخل الدالة
 
     if not data:
         print("No data received")
         return "No data", 400
 
-    # للتأكد من اختبار Webhook
     if data.get("event") == "webhook.test":
         print("📩 Received test webhook:", data)
         return {"status": "test ok"}, 200
 
-    # بعض Webhook يرسلون payload داخل "data" أو مباشرة في الجذر
     payload = data.get("data") or data
 
-    user_id = payload.get("from")
-    message = payload.get("body") or ""  # لو مافي نص خليها فارغة
+    # هنا التعديل
+    user_id = payload.get("from") or payload.get("sender") or payload.get("chatId") or payload.get("user") or None
+    message = payload.get("body") or payload.get("message") or ""  # لو مافي نص خليها فارغة
     driver_id = None
     latitude = None
     longitude = None
 
-    # لو الرسالة من نوع location
     if payload.get("type") == "location":
         location = payload.get("location", {})
         latitude = location.get("latitude")
@@ -55,11 +50,9 @@ def webhook():
         print("❌ Missing user_id")
         return "Missing user_id", 400
 
-    # لو الرسالة تحتوي على قبول الطلب من مندوب
-    if "قبول" في message:
+    if "قبول" in message:
         driver_id = user_id
 
-    # تمرير الرسالة إلى Dispatcher
     response = dispatch_message(
         user_id=user_id,
         message=message,
