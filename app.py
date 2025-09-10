@@ -1,11 +1,9 @@
 from flask import Flask, request
 from dispatcher import dispatch_message
 from send_utils import send_message  # تأكد من الاستيراد هنا
-import menu_app  # إذا كنت تحتاجه في مكان آخر
 
 app = Flask(__name__)
 
-# تخزين حالة كل مستخدم وطلباته
 user_states = {}
 user_orders = {}
 
@@ -16,14 +14,10 @@ def index():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
+    # print("بيانات الواتساب الواردة:", data)  # يمكنك حذف هذا أيضاً إذا انتهيت من الفحص
 
     if not data:
         return "❌ No data received", 400
-
-    # إذا كان هذا اختبار Webhook من WaSenderAPI
-    if data.get("event") == "webhook.test":
-        print("📩 Received test webhook:", data)
-        return {"status": "test ok"}, 200
 
     payload = data.get("data", {})
 
@@ -36,9 +30,8 @@ def webhook():
     # إذا كانت الرسالة من نوع "location" استخرج الإحداثيات من مفتاح location
     if payload.get("type") == "location":
         location = payload.get("location", {})
-        if location:
-            latitude = location.get("latitude")
-            longitude = location.get("longitude")
+        latitude = location.get("latitude")
+        longitude = location.get("longitude")
     else:
         latitude = payload.get("latitude")
         longitude = payload.get("longitude")
@@ -46,7 +39,6 @@ def webhook():
     if not user_id or not message:
         return "❌ Missing fields", 400
 
-    # إذا كانت الرسالة تحتوي على "قبول" اعتبرها قبول من المندوب
     if "قبول" in message:
         driver_id = user_id
 
@@ -60,12 +52,10 @@ def webhook():
         longitude=longitude
     )
 
-    # إرسال الرد إذا موجود
     if response:
         phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
         send_message(phone, response)
 
     return "✅ OK", 200
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+import menu_app  # ابقه إذا كنت تحتاجه في مكان آخر
