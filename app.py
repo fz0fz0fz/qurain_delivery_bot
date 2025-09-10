@@ -1,7 +1,7 @@
 from flask import Flask, request
 from dispatcher import dispatch_message
 from send_utils import send_message  # تأكد من وجودها
-import menu_app  # لو تحتاجه للواجهة
+
 
 app = Flask(__name__)
 
