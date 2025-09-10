@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 from dispatcher import dispatch_message
 from send_utils import send_message  # تأكد من وجوده
-import menu_app  # إذا تحتاجه لعرض الواجهة
 
 app = Flask(__name__)
 
