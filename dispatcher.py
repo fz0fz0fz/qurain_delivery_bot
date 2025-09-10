@@ -271,7 +271,4 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
                 service_data.get("items", []),
                 allowed_service_ids,
                 main_menu_text
-            )
-
-    
-    return format_search_results(results)
+    )
