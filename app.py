@@ -2,7 +2,6 @@ from flask import Flask, request
 from dispatcher import dispatch_message
 from send_utils import send_message  # تأكد من وجودها
 
-
 app = Flask(__name__)
 
 # تخزين حالة المستخدم وطلبات المستخدمين
@@ -22,6 +21,8 @@ def webhook():
     except Exception as e:
         print("Error parsing JSON:", e)
         return "Invalid JSON", 400
+
+    print("Received data:", data)  # هنا يظهر البيانات المستقبلة في السجل
 
     if not data:
         print("No data received")
@@ -55,7 +56,7 @@ def webhook():
         return "Missing user_id", 400
 
     # لو الرسالة تحتوي على قبول الطلب من مندوب
-    if "قبول" in message:
+    if "قبول" في message:
         driver_id = user_id
 
     # تمرير الرسالة إلى Dispatcher
