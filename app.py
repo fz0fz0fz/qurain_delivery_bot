@@ -19,7 +19,7 @@ def webhook():
         print("Error parsing JSON:", e)
         return "Invalid JSON", 400
 
-    print("Received data:", data)  # تأكد أن هذا السطر داخل الدالة
+    print("Received data:", data)  # هنا يظهر البيانات المستقبلة في السجل
 
     if not data:
         print("No data received")
@@ -31,20 +31,34 @@ def webhook():
 
     payload = data.get("data") or data
 
-    # هنا التعديل
-    user_id = payload.get("from") or payload.get("sender") or payload.get("chatId") or payload.get("user") or None
-    message = payload.get("body") or payload.get("message") or ""  # لو مافي نص خليها فارغة
+    # استخراج user_id من remoteJid داخل key
+    try:
+        messages = payload.get("messages")
+        if not messages:
+            print("❌ No messages object found")
+            return "No messages object", 400
+
+        key = messages.get("key")
+        user_id = key.get("remoteJid")
+        # استخراج الرسالة من conversation
+        message_obj = messages.get("message", {})
+        message = message_obj.get("conversation", "")
+    except Exception as e:
+        print("❌ Error extracting user_id and message:", e)
+        return "Error extracting user_id/message", 400
+
     driver_id = None
     latitude = None
     longitude = None
 
-    if payload.get("type") == "location":
-        location = payload.get("location", {})
+    # لو الرسالة من نوع location (يمكنك تعديلها لاحقًا حسب الخدمة)
+    if message_obj.get("type") == "location":
+        location = message_obj.get("location", {})
         latitude = location.get("latitude")
         longitude = location.get("longitude")
     else:
-        latitude = payload.get("latitude")
-        longitude = payload.get("longitude")
+        latitude = None
+        longitude = None
 
     if not user_id:
         print("❌ Missing user_id")
@@ -64,7 +78,7 @@ def webhook():
     )
 
     if response:
-        phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
+        phone = user_id.split("@")[0] if "@" in user_id else user_id
         send_message(phone, response)
 
     return "✅ OK", 200
