@@ -1,61 +1,32 @@
-from flask import Flask, request
-from dispatcher import dispatch_message
-from send_utils import send_message  # تأكد من الاستيراد هنا
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-user_states = {}
-user_orders = {}
-
-@app.route("/", methods=["GET"])
+# صفحة اختبارية للتأكد إن السيرفر شغال
+@app.route("/")
 def index():
-    return "🚀 Qurain Delivery Bot is Live!"
+    return "Service is live!", 200
 
+# Webhook لاستقبال الرسائل
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.json
-    # print("بيانات الواتساب الواردة:", data)  # يمكنك حذف هذا أيضاً إذا انتهيت من الفحص
+    try:
+        data = request.get_json(force=True)  # force=True عشان يجبر flask يقرأ JSON
+    except Exception as e:
+        print("Error parsing JSON:", e)
+        return "Invalid JSON", 400
 
     if not data:
-        return "❌ No data received", 400
+        print("No data received")
+        return "No data", 400
 
-    payload = data.get("data", {})
+    # مثال: طباعة البيانات اللي وصلت
+    print("Received webhook data:", data)
 
-    user_id = payload.get("from")
-    message = payload.get("body")
-    driver_id = None
-    latitude = None
-    longitude = None
+    # هنا ممكن تضيف أي منطق للرد أو التعامل مع الرسائل
+    # مثلاً: إرسال الرد للبوت أو حفظها في ملف/قاعدة بيانات
 
-    # إذا كانت الرسالة من نوع "location" استخرج الإحداثيات من مفتاح location
-    if payload.get("type") == "location":
-        location = payload.get("location", {})
-        latitude = location.get("latitude")
-        longitude = location.get("longitude")
-    else:
-        latitude = payload.get("latitude")
-        longitude = payload.get("longitude")
+    return jsonify({"status": "ok"}), 200
 
-    if not user_id or not message:
-        return "❌ Missing fields", 400
-
-    if "قبول" in message:
-        driver_id = user_id
-
-    response = dispatch_message(
-        user_id=user_id,
-        message=message,
-        user_states=user_states,
-        user_orders=user_orders,
-        driver_id=driver_id,
-        latitude=latitude,
-        longitude=longitude
-    )
-
-    if response:
-        phone = user_id.split("@")[0] if "@c.us" in user_id else user_id
-        send_message(phone, response)
-
-    return "✅ OK", 200
-
-
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
