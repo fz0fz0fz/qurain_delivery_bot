@@ -58,4 +58,4 @@ def webhook():
 
     return "✅ OK", 200
 
-import menu_app  # ابقه إذا كنت تحتاجه في مكان آخر
+
