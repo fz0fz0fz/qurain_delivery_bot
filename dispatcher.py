@@ -273,6 +273,5 @@ def dispatch_message(user_id, message, user_states, user_orders, driver_id=None,
                 main_menu_text
             )
 
-    # البحث الذكي في الخدمات
-    results = search_services_arabic(msg, SERVICES)
+    
     return format_search_results(results)
